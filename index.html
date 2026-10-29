@@ -3,23 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SportLink | 運動教練與代課媒合</title>
+  <meta name="theme-color" content="#0c1930">
+  <meta name="description" content="SportLink 專業運動教練媒合平台。探索雙北與桃園運動教練、查看真實評價、預約課程。">
+  <title>SportLink | 找到對的教練，突破每一個可能</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="./app.js"></script>
 </head>
 <body>
-  <header>
-    <div class="nav">
-      <div class="brand">Sport<span>Link</span></div>
-      <button data-page="home">首頁</button>
-      <button data-page="coaches">找教練</button>
-      <button data-page="substitutions">找代課</button>
-      <button data-page="dashboard">我的中心</button>
-      <button class="login" data-page="account">登入 / 身分</button>
-    </div>
+  <header class="site-header">
+    <nav class="nav" aria-label="主要導覽">
+      <div class="brand" aria-label="SportLink">SPORT<span>LINK</span><i>.</i></div>
+      <div class="nav-links">
+        <button data-page="home">首頁</button>
+        <button data-page="coaches">探索教練</button>
+        <button data-page="substitutions">代課媒合</button>
+        <button data-page="dashboard">我的中心</button>
+      </div>
+      <button class="login" data-page="account">會員登入 <span aria-hidden="true">↗</span></button>
+    </nav>
   </header>
   <main class="wrap" id="app"></main>
-  <footer class="foot">SportLink V1 · 單一城市試營運互動原型 · 資料僅供示範</footer>
+  <footer class="foot"><div class="footer-inner"><div><strong>SPORT<span>LINK</span><i>.</i></strong><p>讓專業運動教練與每一份熱愛相遇。</p></div><div class="footer-right">© 2026 SportLink · 雙北・桃園試營運<br><small>代課媒合功能目前為示範版本</small></div></div></footer>
 </body>
 </html>
