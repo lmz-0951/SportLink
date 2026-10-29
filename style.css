@@ -8,3 +8,31 @@
 @media(max-width:960px){.nav{gap:10px;padding:14px 18px}.nav-links{gap:0}.nav button{padding:10px}.hero{padding:55px 38px;grid-template-columns:1fr .65fr}.hero-ball{width:155px;height:155px;font-size:64px}.hero-orbit{width:240px;height:240px}.orbit-two{width:190px;height:190px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.nav{flex-wrap:wrap;gap:9px}.brand{font-size:20px}.nav .login{margin-left:auto;padding:9px 12px;font-size:12px}.nav-links{width:100%;order:3;justify-content:space-between;overflow-x:auto}.nav-links button{font-size:12px;padding:10px 7px;white-space:nowrap}.wrap{padding:18px 15px 55px}.hero{grid-template-columns:1fr;padding:39px 25px;min-height:0;border-radius:19px}.hero h1{font-size:clamp(29px,8vw,42px)}.hero p{font-size:14px}.hero-visual{display:none}.hero-trust{gap:10px;margin-top:28px;font-size:11px}.section{margin-top:42px}.section-heading{align-items:flex-start;flex-direction:column;gap:12px}.section-heading>p{margin:0}.grid{grid-template-columns:1fr;gap:14px}.feature-card{min-height:0}.card{padding:20px}.closing-banner{margin-top:45px;padding:26px;flex-direction:column;align-items:flex-start}.closing-banner h2{font-size:21px}.footer-inner{flex-direction:column;align-items:flex-start}.footer-right{text-align:left}.coach-detail{padding:22px}.filters .field{flex:1;min-width:135px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,.coach-card{transition:none}}
+
+/* SportLink V3 · Decorative sports art, subtle motion, accessible effects */
+body{background:radial-gradient(ellipse 44% 28% at 0% 20%,rgba(77,125,235,.055),transparent 80%),radial-gradient(ellipse 36% 22% at 100% 64%,rgba(62,193,206,.055),transparent 80%),#f5f7fb}
+.hero{background:radial-gradient(circle at 78% 42%,#254b83 0%,transparent 43%),linear-gradient(125deg,#0a172d,#102746 74%,#173b65)}
+.hero:before{content:"";position:absolute;inset:0;background-image:radial-gradient(#c4e1ff 1px,transparent 1px);background-size:29px 29px;opacity:.10;mask-image:linear-gradient(to right,transparent 35%,#000 100%);pointer-events:none}
+.hero-visual{position:relative;isolation:isolate}
+.hero-athlete{position:absolute;z-index:2;left:50%;top:50%;width:min(110%,460px);max-height:110%;object-fit:contain;transform:translate(-50%,-49%);filter:drop-shadow(0 22px 36px rgba(2,12,34,.27));animation:athleteFloat 6.5s ease-in-out infinite}
+.hero-orbit{animation:orbitPulse 8s ease-in-out infinite}
+.orbit-two{animation-delay:-3s}
+.hero-spark{position:absolute;z-index:3;color:#a7eaff;text-shadow:0 0 22px #62c8ff;font-size:32px;animation:sparkFloat 4.2s ease-in-out infinite}
+.spark-one{top:16%;right:14%}.spark-two{bottom:19%;left:6%;animation-delay:-2s}
+.floating-note{z-index:4;backdrop-filter:blur(12px);box-shadow:0 12px 35px rgba(0,0,0,.14);animation:noteFloat 5s ease-in-out infinite}
+.note-two{animation-delay:-2.5s}
+.intro-section,.featured-section{position:relative}
+.intro-section:before{content:"";position:absolute;right:-24px;top:-32px;width:120px;height:120px;border:1px solid rgba(48,107,231,.09);border-radius:50%;pointer-events:none}
+.feature-card{position:relative;overflow:hidden;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}
+.feature-card:after{position:absolute;right:-22px;top:-28px;font-size:115px;line-height:1;color:#3568ed;opacity:.045;font-weight:900;pointer-events:none;transform:rotate(-16deg)}
+.feature-find:after{content:"◎"}.feature-plan:after{content:"▦"}.feature-connect:after{content:"↗"}
+.feature-card:hover,.coach-card:hover{transform:translateY(-5px);box-shadow:0 22px 48px rgba(17,42,84,.11);border-color:#d1def8}
+.coach-card{transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease}
+.closing-banner{position:relative;overflow:hidden}
+.closing-banner:before{content:"";position:absolute;width:330px;height:330px;right:12%;top:-220px;border:38px solid rgba(255,255,255,.065);border-radius:50%;pointer-events:none}
+@keyframes athleteFloat{0%,100%{transform:translate(-50%,-49%)}50%{transform:translate(-50%,-52%)}}
+@keyframes sparkFloat{0%,100%{transform:translateY(0);opacity:.7}50%{transform:translateY(-13px);opacity:1}}
+@keyframes orbitPulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.035)}}
+@keyframes noteFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@media(max-width:750px){.hero-athlete{width:min(92%,320px);max-height:100%}.hero-spark{font-size:23px}.feature-card:hover,.coach-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.hero-athlete,.hero-orbit,.hero-spark,.floating-note{animation:none!important}.feature-card,.coach-card{transition:none!important}html{scroll-behavior:auto}}
