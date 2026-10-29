@@ -8,6 +8,7 @@ const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('sl_'+k))??d}catch
 const save=(k,v)=>localStorage.setItem('sl_'+k,JSON.stringify(v));
 let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',sportFilter='全部',areaFilter='全部';
 let jobs=load('jobs',initialJobs),applications=load('applications',[]);
+let availabilitySlots=[],availabilityError='';
 const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(name,action,cls='btn')=>`<button type="button" class="${cls}" data-action="${action}">${name}</button>`;
@@ -21,7 +22,7 @@ const allCoaches=()=>[...liveCoaches,...coaches.map(c=>({...c,demo:true}))];
 async function refreshData(){
   const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active').eq('is_active',true).order('created_at',{ascending:false});
   if(ce)throw ce;liveCoaches=publicCoaches||[];
-  if(!user){admin=false;coachProfile=null;bookings=[];return}
+  if(!user){admin=false;coachProfile=null;bookings=[];availabilitySlots=[];availabilityError='';return}
   const [a,c,b]=await Promise.all([
     supabaseClient.rpc('is_platform_admin'),
     supabaseClient.from('coaches').select('*').eq('user_id',user.id).maybeSingle(),
@@ -29,9 +30,31 @@ async function refreshData(){
   ]);
   if(a.error)throw a.error;if(c.error)throw c.error;if(b.error)throw b.error;
   admin=!!a.data;coachProfile=c.data;bookings=b.data||[];
+  availabilitySlots=[];availabilityError='';
+  if(coachProfile){
+    const {data:slots,error:slotError}=await supabaseClient.from('coach_availability')
+      .select('id,coach_id,lesson_date,lesson_time')
+      .eq('coach_id',coachProfile.id)
+      .order('lesson_date',{ascending:true})
+      .order('lesson_time',{ascending:true});
+    if(slotError)availabilityError=slotError.message;
+    else availabilitySlots=slots||[];
+  }
 }
 async function reload(){try{await refreshData();render()}catch(e){console.error(e);render();alert('雲端資料讀取失敗：'+errorText(e))}}
 function bookingCard(b){const coachName=b.coaches?.display_name||'教練';const sport=b.coaches?.sport||'課程';const owned=coachProfile?.id===b.coach_id;return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${b.status==='pending'&&b.student_id===user?.id?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}</div>`}
+function availabilityPanel(){
+  if(!coachProfile)return '';
+  if(!coachProfile.is_active)return '<p class="muted">教練通過審核後才能開放預約時段。</p>';
+  const slots=availabilitySlots.map(s=>`<div class="item"><div class="row"><span>📅 ${esc(s.lesson_date)}　${esc(String(s.lesson_time).slice(0,5))}</span>${btn('移除時段','availability-remove:'+s.id,'btn secondary')}</div></div>`).join('');
+  return `<div class="section"><h2>我的可預約時段</h2><p class="muted">先開放日期和時間，之後才會讓學生從這些時段選擇。</p>
+    ${availabilityError?`<p class="notice">時段讀取失敗：${esc(availabilityError)}</p>`:''}
+    <form class="form" id="availabilityForm">
+      <label>開放日期<input name="date" type="date" min="${dateToday()}" required></label>
+      <label>開始時間<input name="time" type="time" required></label>
+      <button class="btn" type="submit">新增可預約時段</button>
+    </form><div class="list">${slots||'<div class="item muted">目前沒有開放時段。</div>'}</div></div>`;
+}
 function render(){
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   if(page==='home')app.innerHTML=`<section class="hero"><div><span class="pill">📍 台北市試營運</span><h1>找到好教練，<br>也找到下一個機會。</h1><p>學生輕鬆預約專業運動教練；教練管理課程、尋找學生，也能快速發布與承接代課。</p><div class="hero-actions">${btn('探索運動教練','go:coaches')}${btn('尋找代課機會','go:substitutions','btn ghost')}</div></div><div class="art">🏊 🏸<br>🏀 🏋️</div></section><section class="section"><h2>你可以在 SportLink 做什麼？</h2><div class="grid"><div class="card"><h3>🎓 學生找教練</h3><p>尋找經平台核准的教練並提出預約。</p>${btn('找教練','go:coaches','btn secondary')}</div><div class="card"><h3>💪 教練管理課程</h3><p>申請上架，查看學生預約並回覆。</p>${btn('進入管理中心','go:dashboard','btn secondary')}</div><div class="card"><h3>🔄 教練代課媒合</h3><p>代課功能目前仍是本機示範。</p>${btn('找代課','go:substitutions','btn secondary')}</div></div></section><section class="section"><div class="row"><h2>精選教練</h2>${btn('查看全部','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')}</div></section>`;
@@ -48,7 +71,22 @@ function render(){
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    const availabilityForm=app.querySelector('#availabilityForm');
+    if(availabilityForm)availabilityForm.onsubmit=async e=>{
+      e.preventDefault();
+      const submit=availabilityForm.querySelector('button');
+      const f=new FormData(availabilityForm);
+      submit.disabled=true;
+      try{
+        const {data,error}=await supabaseClient.rpc('sportlink_add_availability',{
+          p_date:f.get('date'),p_time:f.get('time')
+        });
+        if(error)throw error;
+        if(data===false)throw Error('沒有新增時段，可能是該時段已存在');
+        await reload();
+      }catch(err){alert('新增時段失敗：'+errorText(err));submit.disabled=false}
+    };
   }
   else if(page==='coach-apply'){
     if(!user){page='account';render();return}if(coachProfile){page='dashboard';render();return}
@@ -70,6 +108,18 @@ document.addEventListener('click',async e=>{
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
   if(cmd==='go'||cmd==='coach'||cmd==='job'){page=cmd==='go'?id:a;render();window.scrollTo(0,0);return}
   if(cmd==='reload'||cmd==='admin-refresh'){await reload();return}
+  if(cmd==='availability-remove'){
+    if(!coachProfile?.is_active)return;
+    if(!confirm('確定移除這個開放時段？已有預約的時段可能無法移除。'))return;
+    b.disabled=true;
+    try{
+      const {data,error}=await supabaseClient.rpc('sportlink_remove_availability',{p_slot_id:id});
+      if(error)throw error;
+      if(!data)throw Error('無法移除，可能已有預約或沒有權限');
+      await reload();
+    }catch(err){alert('移除時段失敗：'+errorText(err));b.disabled=false}
+    return;
+  }
   if(cmd==='booking-accept'||cmd==='booking-reject'||cmd==='booking-cancel'){
     if(!user)return;const action=cmd.slice(8);if(!confirm(action==='accept'?'確定接受這筆預約？':action==='reject'?'確定拒絕這筆預約？':'確定取消預約？'))return;
     b.disabled=true;try{const {data,error}=await supabaseClient.rpc('sportlink_change_booking_status',{p_booking_id:id,p_action:action});if(error)throw error;if(!data)throw Error('沒有權限或預約已經處理');await reload()}catch(err){alert('操作失敗：'+errorText(err));b.disabled=false}return;
