@@ -61,8 +61,49 @@ function render(){
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">標示「示範資料」的教練尚未連結真實帳號，無法預約。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${options(['全部','大安區','中山區','信義區','士林區'],areaFilter)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||c.area===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card"><h1>${esc(c.display_name)}</h1><p class="muted">${esc(c.sport)} · 台北市${esc(c.area)}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>上課日期<input name="date" type="date" min="${dateToday()}" required></label><label>上課時間<input name="time" type="time" required></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn">送出預約申請</button></form><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
-    app.querySelector('#bookingForm').onsubmit=async e=>{e.preventDefault();if(!user){alert('請先登入');page='account';render();return}if(user.id===c.user_id){alert('不能預約自己的課程');return}const f=new FormData(e.target),submit=e.target.querySelector('button');submit.disabled=true;try{const {error}=await supabaseClient.from('bookings').insert({student_id:user.id,coach_id:c.id,lesson_date:f.get('date'),lesson_time:f.get('time'),note:String(f.get('note')||'').trim(),status:'pending'});if(error)throw error;alert('預約已送出，等待教練確認');page='dashboard';await reload()}catch(err){alert('預約失敗：'+errorText(err))}finally{submit.disabled=false}};
+    app.innerHTML=`<div class="panel card"><h1>${esc(c.display_name)}</h1><p class="muted">${esc(c.sport)} · 台北市${esc(c.area)}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
+    const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
+    const requestedPage=page;
+    (async()=>{
+      try{
+        const [{data:slots,error:slotError},{data:reserved,error:bookingError}]=await Promise.all([
+          supabaseClient.from('coach_availability').select('id,lesson_date,lesson_time').eq('coach_id',c.id).order('lesson_date',{ascending:true}).order('lesson_time',{ascending:true}),
+          // Only visible to relevant users under RLS; this is for UI hints, not security.
+          supabaseClient.from('bookings').select('lesson_date,lesson_time').eq('coach_id',c.id).in('status',['pending','accepted'])
+        ]);
+        if(slotError)throw slotError;
+        // Booking rows may be hidden by RLS, so server constraints remain authoritative.
+        const reservedKeys=new Set((bookingError?[]:reserved||[]).map(b=>b.lesson_date+'|'+String(b.lesson_time).slice(0,5)));
+        const now=new Date();
+        const openSlots=(slots||[]).filter(s=>{
+          const day=s.lesson_date,time=String(s.lesson_time).slice(0,5);
+          const localStart=new Date(day+'T'+time+':00');
+          return localStart>now&&!reservedKeys.has(day+'|'+time);
+        });
+        if(page!==requestedPage||!app.contains(form))return;
+        select.innerHTML='<option value="">請選擇日期與時間</option>'+openSlots.map(s=>`<option value="${esc(s.id)}">${esc(s.lesson_date)}　${esc(String(s.lesson_time).slice(0,5))}</option>`).join('');
+        select.disabled=openSlots.length===0;
+        submit.disabled=openSlots.length===0;
+        message.textContent=openSlots.length?'請選擇教練開放的時段。若時段已被其他學生預約，送出時會提示。':'教練目前尚未開放可預約時段。';
+        form._openSlots=openSlots;
+      }catch(err){if(page!==requestedPage||!app.contains(form))return;select.innerHTML='<option value="">時段讀取失敗</option>';message.textContent='讀取時段失敗：'+errorText(err);console.error(err)}
+    })();
+    form.onsubmit=async e=>{
+      e.preventDefault();
+      if(!user){alert('請先登入');page='account';render();return}
+      if(user.id===c.user_id){alert('不能預約自己的課程');return}
+      const f=new FormData(form),slot=(form._openSlots||[]).find(s=>s.id===f.get('slot'));
+      if(!slot){alert('請先選擇有效的可預約時段');return}
+      submit.disabled=true;
+      try{
+        const {error}=await supabaseClient.from('bookings').insert({student_id:user.id,coach_id:c.id,lesson_date:slot.lesson_date,lesson_time:slot.lesson_time,note:String(f.get('note')||'').trim(),status:'pending'});
+        if(error)throw error;
+        alert('預約已送出，等待教練確認');page='dashboard';await reload();
+      }catch(err){
+        console.error(err);
+        alert(err?.code==='23505'?'這個時段剛剛已被其他學生預約，請重新進入教練頁面選擇其他時間。':'預約失敗：'+errorText(err));
+      }finally{submit.disabled=false}
+    };
   }
   else if(page==='account'){
     app.innerHTML=`<div class="panel card"><h1>SportLink 會員</h1><p class="muted">使用 Email 與密碼登入。註冊後請到信箱完成驗證。</p>${user?`<p class="notice">目前登入：${esc(user.name)}（${esc(user.role)}）${admin?' · 平台管理員':''}</p>${btn('登出','logout','btn secondary')}`:`<form class="form" id="accountForm"><label>電子郵件<input name="email" type="email" autocomplete="email" required></label><label>密碼（至少 6 碼）<input name="password" type="password" minlength="6" autocomplete="current-password" required></label><div id="signupFields" hidden><label>顯示名稱<input name="name" maxlength="30" placeholder="暱稱"></label><label>主要身分<select name="role"><option value="student">學生</option><option value="coach">教練</option></select></label></div><div class="row"><button class="btn" type="submit" id="authSubmit">登入</button>${btn('切換成註冊','toggle-signup','btn secondary')}</div><p id="authMessage" class="muted" role="status"></p></form>`}</div>`;
