@@ -205,3 +205,26 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
   .sl-window-subtitle { font-size: 11px; opacity: .7; }
   .site-header { top: 16px; }
 }
+
+
+/* SportLink V9.1 — fixed desktop PWA navigation.
+   Reserve layout space so the fixed navigation does not cover the hero.
+   Normal browser tabs and iPhone/mobile layouts remain unchanged. */
+@media (display-mode: standalone) and (min-width: 1024px),
+       (display-mode: window-controls-overlay) and (min-width: 1024px) {
+  body { padding-top: 132px; }
+  .site-header {
+    position: fixed;
+    top: 40px;
+    left: 24px;
+    right: 24px;
+    width: auto;
+    z-index: 200;
+  }
+  .wrap { margin-top: 16px; }
+}
+/* When Chrome's titlebar overlay is active, place the navigation below it. */
+@media (display-mode: window-controls-overlay) and (min-width: 1024px) {
+  body { padding-top: calc(env(titlebar-area-height, 32px) + 112px); }
+  .site-header { top: calc(env(titlebar-area-height, 32px) + 16px); }
+}
