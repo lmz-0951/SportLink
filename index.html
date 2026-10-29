@@ -14,4 +14,20 @@ else if(page==='account')app.innerHTML=`<div class="panel card"><h1>示範帳號
 else if(page==='dashboard'){if(!user){page='account';render();return}let mine=bookings.filter(b=>b.student===user.name||coaches.some(c=>c.name===user.name&&c.name===b.coach)),myjobs=jobs.filter(j=>j.owner===user.name),myapps=applications.filter(a=>a.applicant===user.name);app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)} · 示範會員中心</p><div class="tabs">${btn('切換成學生','role:學生',user.role==='學生'?'active':'')}${btn('切換成教練','role:教練',user.role==='教練'?'active':'')}${btn('發布代課','go:newjob','btn secondary')}</div><div class="section"><h2>我的課程預約</h2><div class="list">${mine.map(b=>`<div class="item"><div class="row"><b>${esc(b.sport)} · ${esc(b.coach)}</b><span class="pill">${esc(b.status)}</span></div><p class="muted">${esc(b.date)} ${esc(b.time)}</p>${b.status==='待教練確認'?btn('取消申請','cancel:'+b.id,'btn secondary'):''}</div>`).join('')||'<div class="item muted">目前沒有預約紀錄。</div>'}</div></div><div class="section"><h2>我發布的代課需求</h2><div class="list">${myjobs.map(j=>`<div class="item"><div class="row"><b>${esc(j.sport)} · ${esc(j.date)}</b><span class="pill">${j.status==='open'?'招募中':'已媒合'}</span></div><p class="muted">申請人：${applications.filter(a=>a.jobId===j.id).map(a=>esc(a.applicant)).join('、')||'尚無'}</p>${j.status==='open'?applications.filter(a=>a.jobId===j.id).map(a=>btn('接受 '+esc(a.applicant),'accept:'+j.id+':'+a.id,'btn secondary')).join(' '):''}</div>`).join('')||'<div class="item muted">尚未發布代課需求。</div>'}</div></div><div class="section"><h2>我的代課申請</h2><div class="list">${myapps.map(a=>`<div class="item"><b>${esc(a.sport)} · ${esc(a.date)}</b><p class="muted">狀態：${esc(a.status)}</p></div>`).join('')||'<div class="item muted">尚未申請代課。</div>'}</div></div>`;}
 }
 document.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.dataset.page){page=b.dataset.page;render();window.scrollTo(0,0);return}let a=b.dataset.action;if(!a)return;let [cmd,id,extra]=a.split(':');if(cmd==='go'){page=id;render();window.scrollTo(0,0)}else if(cmd==='coach'||cmd==='job'){page=a;render();window.scrollTo(0,0)}else if(cmd==='apply'){if(!user){page='account';render();return}let j=jobs.find(x=>x.id===+id);if(j.owner===user.name){alert('不能申請自己的代課需求');return}if(applications.some(x=>x.jobId===j.id&&x.applicant===user.name)){alert('已經申請過這筆代課');return}applications.push({id:Date.now(),jobId:j.id,applicant:user.name,sport:j.sport,date:j.date,status:'待確認'});save('applications',applications);alert('代課申請已送出（示範）');page='dashboard';render()}else if(cmd==='accept'){let j=jobs.find(x=>x.id===+id),a=applications.find(x=>x.id===+extra);if(j.owner!==user?.name)return;j.status='matched';a.status='已接受';applications.filter(x=>x.jobId===j.id&&x.id!==a.id).forEach(x=>x.status='未獲選');save('jobs',jobs);save('applications',applications);render()}else if(cmd==='cancel'){let x=bookings.find(b=>b.id===+id);if(x&&x.student===user?.name){x.status='已取消';save('bookings',bookings);render()}}else if(cmd==='role'){user.role=id;save('user',user);render()}else if(cmd==='logout'){user=null;save('user',null);page='home';render()}});document.addEventListener('change',e=>{if(e.target.id==='sportFilter'){sportFilter=e.target.value;render()}if(e.target.id==='areaFilter'){areaFilter=e.target.value;render()}});render();
-</script></body></html>
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = " https://szlfgarfcgqtqalvljil.supabase.co/rest/v1/";
+  const SUPABASE_KEY = "sb_publishable_bLDjhYZQGgquuYL8MuYFug__NScOGUB";
+ 
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  console.log("SportLink Supabase 客戶端已初始化");
+</script>
+
+</body></html>
