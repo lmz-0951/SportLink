@@ -173,3 +173,10 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
     overflow: hidden;
   }
 }
+
+/* SportLink V8 — extra breathing room beneath the native Windows title bar.
+   Only the installed desktop PWA; does not change Chrome tabs or iPhone. */
+@media (display-mode: standalone) and (min-width: 1024px) {
+  body { padding-top: 40px; }
+  .site-header { top: 16px; }
+}
