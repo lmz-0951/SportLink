@@ -67,3 +67,39 @@ body::before{
 @keyframes slAmbientDrift{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-25px,0)}}
 @media(max-width:700px){body{background-attachment:scroll}.wrap::before{left:-55%;top:420px;opacity:.55}.wrap::after{right:-55%;top:1050px;opacity:.5}body::before{background-size:34px 34px;opacity:.65}}
 @media(prefers-reduced-motion:reduce){.wrap::before,.wrap::after{animation:none!important}}
+
+/* SportLink V5 · Signature card and button language. Keeps V4 background. */
+:root{--sl-ink:#102744;--sl-electric:#3268ee;--sl-mint:#5ad7c5}
+/* Buttons: directional arrow and polished capsule silhouette */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;border-radius:999px;padding:12px 21px;letter-spacing:.01em;background:linear-gradient(115deg,#2457d8,#437dff);box-shadow:0 9px 22px rgba(44,96,216,.20),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .24s ease,box-shadow .24s ease,background .24s ease;white-space:normal}
+.btn::after{content:'↗';display:inline-block;font-size:16px;line-height:1;transition:transform .24s ease}
+.btn:hover:not(:disabled){transform:translateY(-3px);background:linear-gradient(115deg,#1945bb,#3972f4);box-shadow:0 15px 30px rgba(44,96,216,.26)}
+.btn:hover:not(:disabled)::after{transform:translate(3px,-3px)}
+.btn.secondary{background:linear-gradient(110deg,#e8f0ff,#f1f6ff);color:#2356c3;box-shadow:inset 0 0 0 1px #dce8ff}
+.btn.secondary:hover:not(:disabled){background:#dce9ff;box-shadow:inset 0 0 0 1px #bdd3ff,0 8px 20px rgba(39,87,176,.08)}
+.btn.ghost{background:#fff;color:#173456;box-shadow:inset 0 0 0 1px rgba(255,255,255,.65)}
+/* Feature cards: asymmetric corners, editorial index, fine graphic rail */
+.feature-card{border-radius:28px 12px 28px 12px;border:1px solid rgba(199,214,238,.85);background:linear-gradient(150deg,rgba(255,255,255,.99),rgba(249,252,255,.96));padding:34px 30px 28px;box-shadow:0 18px 44px rgba(23,49,93,.07);isolation:isolate}
+.feature-card::before{content:'01';position:absolute;top:18px;right:24px;color:rgba(46,100,219,.11);font-size:49px;font-weight:900;letter-spacing:-.08em;line-height:1;pointer-events:none}
+.feature-card:nth-child(2)::before{content:'02'}
+.feature-card:nth-child(3)::before{content:'03'}
+.feature-card::after{opacity:.035}
+.feature-card .feature-icon{width:58px;height:58px;border-radius:19px 8px 19px 8px;background:linear-gradient(145deg,#e6efff,#f1f7ff);box-shadow:inset 0 0 0 1px #dce8ff;color:#2f65e7}
+.feature-card h3{font-size:19px;letter-spacing:-.35px}
+.feature-card:hover{border-color:#a8c3f4;box-shadow:0 25px 55px rgba(28,68,142,.12)}
+/* Coach cards: distinctive corner, restrained sport-accent, premium pricing */
+.coach-card{position:relative;overflow:hidden;border-radius:13px 29px 13px 29px;border:1px solid #e0e9f7;padding:27px 24px 23px;background:linear-gradient(160deg,#fff 68%,#f8fbff);box-shadow:0 15px 36px rgba(23,49,93,.075)}
+.coach-card::before{content:'';position:absolute;left:0;top:25px;width:4px;height:70px;background:linear-gradient(#437aff,#62d7d1);border-radius:0 5px 5px 0;pointer-events:none}
+.coach-card .card-top{gap:16px}
+.coach-card .avatar{box-shadow:0 0 0 5px #edf3ff;flex-shrink:0}
+.coach-card .row{border-top:1px solid #e8eef8;padding-top:20px;margin-top:18px}
+.coach-card .price{font-size:22px;letter-spacing:-.6px;color:#1948b7}
+.coach-card:hover{border-color:#b7cff6;box-shadow:0 25px 54px rgba(23,49,93,.13)}
+/* Shared surface refinement */
+.item{border-radius:10px 23px 10px 23px;border-color:#e0e8f5;transition:border-color .22s ease,box-shadow .22s ease}
+.item:hover{border-color:#c7d8f5;box-shadow:0 12px 32px rgba(25,57,103,.085)}
+.pill{border:1px solid #dce9ff;background:linear-gradient(110deg,#eaf3ff,#f1f9ff);letter-spacing:.015em}
+.field,.form input,.form select,.form textarea{transition:border-color .2s,box-shadow .2s}
+.field:focus,.form input:focus,.form select:focus,.form textarea:focus{border-color:#83a9fa;box-shadow:0 0 0 4px rgba(63,112,239,.09)}
+@media(max-width:700px){.feature-card{padding:26px 23px;border-radius:22px 10px 22px 10px}.feature-card::before{font-size:42px}.coach-card{border-radius:12px 24px 12px 24px;padding:23px 20px}.btn{min-height:42px;padding:11px 16px}.feature-card:hover,.coach-card:hover,.item:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.btn,.btn::after,.feature-card,.coach-card,.item{transition:none!important}}
