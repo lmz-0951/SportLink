@@ -29,6 +29,7 @@ const options=(arr,current)=>arr.map(v=>`<option ${v===current?'selected':''}>${
 const errorText=e=>e?.message||'請稍後再試';
 const dateToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const PHOTO_BUCKET='coach-photos';
+const CERT_BUCKET='coach-certificates';
 // photo_url stores a Storage object path (user-id/avatar-timestamp.ext), not an arbitrary URL.
 const photoSrc=c=>{
   const path=String(c?.photo_url||'');
@@ -45,7 +46,7 @@ const coachCard=c=>`<div class="card"><div class="card-top">${photoAvatar(c)}<di
 const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>${esc(fullArea(j.area))} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
 const allCoaches=()=>liveCoaches;
 async function refreshData(){
-  const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url').eq('is_active',true).order('created_at',{ascending:false});
+  const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url,teaching_years,teaching_experience,certificate_name').eq('is_active',true).order('created_at',{ascending:false});
   if(ce)throw ce;liveCoaches=publicCoaches||[];
   if(!user){admin=false;coachProfile=null;bookings=[];availabilitySlots=[];availabilityError='';return}
   const [a,c,b]=await Promise.all([
@@ -98,7 +99,21 @@ function coachEditPanel(){
       <label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" step="1" required value="${esc(coachProfile.price)}"></label>
       <label>教學介紹<textarea name="description" maxlength="1000" required>${esc(coachProfile.description)}</textarea></label>
       <button class="btn" type="submit">儲存教練資料</button>
-    </form></div>`;
+    </form></div>
+    <div class="section"><h2>教學資歷與專業證照</h2>
+      <p class="muted">年資、經歷及證照名稱會公開顯示；證照照片保存在私人空間。</p>
+      <form class="form" id="coachCredentialsForm">
+        <label>教學年資（年）<input name="teaching_years" type="number" min="0" max="80" step="1" required value="${esc(coachProfile.teaching_years??0)}"></label>
+        <label>教學經歷<textarea name="teaching_experience" maxlength="2000">${esc(coachProfile.teaching_experience||'')}</textarea></label>
+        <label>專業證照名稱<input name="certificate_name" maxlength="200" value="${esc(coachProfile.certificate_name||'')}"></label>
+        <button class="btn" type="submit">儲存教學資歷</button><p class="muted small" id="credentialsMessage" role="status"></p>
+      </form>
+      <form class="form" id="coachCertificateForm">
+        <label>證照照片（JPG、PNG、WebP，最多 5 MB）<input type="file" name="certificate" accept="image/jpeg,image/png,image/webp" required></label>
+        <button class="btn secondary" type="submit">上傳 / 更換證照照片</button>
+        <p class="muted small" id="certificateMessage" role="status">${coachProfile.certificate_path?'已儲存證照照片（不公開）':'尚未上傳證照照片。'}</p>
+      </form>
+    </div>`;
 }
 function availabilityPanel(){
   if(!coachProfile)return '';
@@ -118,7 +133,7 @@ function render(){
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
+    app.innerHTML=`<div class="panel card"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}<p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
     const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
     const requestedPage=page;
     (async()=>{
@@ -215,6 +230,46 @@ function render(){
         alert('教練資料已儲存成功！');
       }catch(err){alert('儲存失敗：'+errorText(err));submit.disabled=false}
     };
+     const credentialsForm=app.querySelector('#coachCredentialsForm');
+     if(credentialsForm)credentialsForm.onsubmit=async e=>{
+       e.preventDefault();
+       if(!user||!coachProfile||coachProfile.user_id!==user.id)return;
+       const f=new FormData(credentialsForm),submit=credentialsForm.querySelector('button[type=submit]'),message=credentialsForm.querySelector('#credentialsMessage');
+       const years=Number(f.get('teaching_years'));
+       if(!Number.isInteger(years)||years<0||years>80){message.textContent='教學年資請填寫 0 到 80 的整數。';return}
+       submit.disabled=true;message.textContent='儲存中…';
+       try{
+         const {data,error}=await supabaseClient.rpc('sportlink_update_coach_credentials',{
+           p_teaching_years:years,
+           p_teaching_experience:String(f.get('teaching_experience')||'').trim(),
+           p_certificate_name:String(f.get('certificate_name')||'').trim()
+         });
+         if(error)throw error;
+         if(data!==true)throw Error('儲存未成功，請確認教練帳號權限');
+         await refreshData();render();alert('教學資歷已儲存成功！');
+       }catch(err){console.error(err);message.textContent='儲存失敗：'+errorText(err);submit.disabled=false}
+     };
+     const certificateForm=app.querySelector('#coachCertificateForm');
+     if(certificateForm)certificateForm.onsubmit=async e=>{
+       e.preventDefault();
+       if(!user||!coachProfile||coachProfile.user_id!==user.id)return;
+       const file=certificateForm.querySelector('input[type=file]').files?.[0];
+       const message=certificateForm.querySelector('#certificateMessage');
+       const submit=certificateForm.querySelector('button[type=submit]');
+       const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file?.type];
+       if(!file||!ext){message.textContent='請選擇 JPG、PNG 或 WebP 照片。';return}
+       if(file.size>5*1024*1024){message.textContent='證照照片不可超過 5 MB。';return}
+       submit.disabled=true;message.textContent='證照照片上傳中…';
+       try{
+         const path=`${user.id}/certificate-${Date.now()}.${ext}`;
+         const {error:uploadError}=await supabaseClient.storage.from(CERT_BUCKET).upload(path,file,{contentType:file.type,upsert:false});
+         if(uploadError)throw uploadError;
+         const {data,error}=await supabaseClient.rpc('sportlink_set_coach_certificate',{p_certificate_path:path});
+         if(error)throw error;
+         if(data!==true)throw Error('證照已上傳，但無法更新教練資料');
+         await refreshData();render();alert('證照照片已安全儲存！');
+       }catch(err){console.error(err);message.textContent='上傳失敗：'+errorText(err);submit.disabled=false}
+     };
     const availabilityForm=app.querySelector('#availabilityForm');
     if(availabilityForm)availabilityForm.onsubmit=async e=>{
       e.preventDefault();
