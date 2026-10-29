@@ -180,3 +180,28 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
   body { padding-top: 40px; }
   .site-header { top: 16px; }
 }
+/* SportLink V9 — Chrome PWA Window Controls Overlay.
+   This does not resize the native caption buttons/titlebar.
+   Hidden by default; only displayed when the overlay is active on desktop. */
+.sl-window-titlebar { display: none; }
+@media (display-mode: window-controls-overlay) and (min-width: 1024px) {
+  body { padding-top: calc(env(titlebar-area-height, 32px) + 28px); }
+  .sl-window-titlebar {
+    display: flex; align-items: center; gap: 9px;
+    position: fixed; z-index: 1000;
+    top: env(titlebar-area-y, 0px);
+    left: env(titlebar-area-x, 0px);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 32px);
+    padding: 0 12px;
+    color: #f7f7f2;
+    background: #263d33;
+    overflow: hidden; white-space: nowrap;
+    -webkit-app-region: drag; app-region: drag;
+    user-select: none;
+  }
+  .sl-window-titlebar img { width: 20px; height: 20px; border-radius: 5px; flex: none; pointer-events: none; }
+  .sl-window-title { font-size: 12px; font-weight: 800; letter-spacing: .1px; }
+  .sl-window-subtitle { font-size: 11px; opacity: .7; }
+  .site-header { top: 16px; }
+}

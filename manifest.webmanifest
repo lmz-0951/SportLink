@@ -1,4 +1,3 @@
-
 {
   "id": "/",
   "name": "SportLink 運動教練媒合平台",
@@ -8,6 +7,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "background_color": "#f7f7f2",
   "theme_color": "#263d33",
   "icons": [

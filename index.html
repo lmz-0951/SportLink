@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SportLink">
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png">
   <meta name="description" content="SportLink 專業運動教練媒合平台。探索雙北與桃園運動教練、查看真實評價、預約課程。">
   <title>SportLink | 找到對的教練，突破每一個可能</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +22,12 @@
   <script defer src="./pwa-register.js"></script>
 </head>
 <body>
+  <!-- Only visible when Chrome enables Window Controls Overlay. -->
+  <div class="sl-window-titlebar" aria-label="SportLink 桌面應用程式標題列">
+    <img src="./icon-192.png" alt="" width="20" height="20">
+    <span class="sl-window-title">SportLink</span>
+    <span class="sl-window-subtitle">運動教練媒合平台</span>
+  </div>
   <header class="site-header">
     <nav class="nav" aria-label="主要導覽">
       <div class="brand" aria-label="SportLink">SPORT<span>LINK</span><i>.</i></div>
