@@ -36,3 +36,34 @@ body{background:radial-gradient(ellipse 44% 28% at 0% 20%,rgba(77,125,235,.055),
 @keyframes noteFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(max-width:750px){.hero-athlete{width:min(92%,320px);max-height:100%}.hero-spark{font-size:23px}.feature-card:hover,.coach-card:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.hero-athlete,.hero-orbit,.hero-spark,.floating-note{animation:none!important}.feature-card,.coach-card{transition:none!important}html{scroll-behavior:auto}}
+/* SportLink V4 — layered ambient backdrop, CSS-only, no JS changes */
+body{
+  background-color:#f4f7fc;
+  background-image:
+    radial-gradient(ellipse 43rem 35rem at 1% 18%,rgba(95,147,250,.18),transparent 74%),
+    radial-gradient(ellipse 40rem 31rem at 99% 47%,rgba(73,201,196,.13),transparent 74%),
+    radial-gradient(ellipse 45rem 28rem at 12% 78%,rgba(126,156,255,.11),transparent 76%),
+    radial-gradient(ellipse 32rem 24rem at 92% 92%,rgba(115,193,247,.12),transparent 74%),
+    linear-gradient(165deg,#f7f9fe 0%,#eef3fc 42%,#f7f9fc 72%,#edf4fc 100%);
+  background-attachment:fixed;
+}
+/* Fine decorative grid stays behind the entire site. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(84,124,194,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(84,124,194,.045) 1px,transparent 1px);
+  background-size:42px 42px;
+  mask-image:linear-gradient(to bottom,transparent 1%,#000 22%,#000 88%,transparent 100%);
+}
+/* Ambient rings and diffuse glows behind content, never over buttons. */
+.wrap{position:relative;isolation:isolate}
+.wrap::before,.wrap::after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;}
+.wrap::before{width:clamp(240px,38vw,560px);height:clamp(240px,38vw,560px);left:-23%;top:480px;border:1px solid rgba(69,121,221,.14);box-shadow:0 0 0 55px rgba(69,121,221,.035),0 0 0 110px rgba(69,121,221,.022);animation:slAmbientDrift 19s ease-in-out infinite alternate}
+.wrap::after{width:clamp(200px,30vw,440px);height:clamp(200px,30vw,440px);right:-16%;top:1150px;border:1px solid rgba(47,173,184,.16);box-shadow:0 0 0 45px rgba(47,173,184,.035),0 0 0 100px rgba(47,173,184,.018);animation:slAmbientDrift 23s ease-in-out infinite alternate-reverse}
+.intro-section,.featured-section{isolation:isolate}
+.intro-section::after,.featured-section::after{content:"";position:absolute;z-index:-1;pointer-events:none;filter:blur(44px);border-radius:50%;opacity:.72}
+.intro-section::after{width:310px;height:210px;left:-10%;bottom:-20px;background:radial-gradient(ellipse,rgba(102,151,255,.16),transparent 72%)}
+.featured-section::after{width:340px;height:260px;right:-10%;top:5%;background:radial-gradient(ellipse,rgba(78,193,208,.15),transparent 72%)}
+.card,.item{box-shadow:0 14px 40px rgba(25,57,103,.065),0 2px 7px rgba(25,57,103,.025)}
+@keyframes slAmbientDrift{from{transform:translate3d(0,0,0)}to{transform:translate3d(0,-25px,0)}}
+@media(max-width:700px){body{background-attachment:scroll}.wrap::before{left:-55%;top:420px;opacity:.55}.wrap::after{right:-55%;top:1050px;opacity:.5}body::before{background-size:34px 34px;opacity:.65}}
+@media(prefers-reduced-motion:reduce){.wrap::before,.wrap::after{animation:none!important}}
