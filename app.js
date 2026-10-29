@@ -53,6 +53,21 @@ function bookingCard(b){
   const cancelInfo=isStudent&&['pending','accepted'].includes(b.status)&&!canCancel?'<p class="muted small">距離上課不足 24 小時，無法自行取消，請聯絡教練。</p>':'';
   return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${cancelInfo}</div>`;
 }
+function coachEditPanel(){
+  if(!coachProfile)return '';
+  const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
+  const areaChoices=[...new Set([coachProfile.area,'大安區','中山區','信義區','士林區'])];
+  const choiceOptions=(values,selected)=>values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
+  return `<div class="section"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
+    <form class="form" id="coachEditForm">
+      <label>公開顯示名稱<input name="display_name" maxlength="60" required value="${esc(coachProfile.display_name)}"></label>
+      <label>運動項目<select name="sport" required>${choiceOptions(sportChoices,coachProfile.sport)}</select></label>
+      <label>授課地區（台北市）<select name="area" required>${choiceOptions(areaChoices,coachProfile.area)}</select></label>
+      <label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" step="1" required value="${esc(coachProfile.price)}"></label>
+      <label>教學介紹<textarea name="description" maxlength="1000" required>${esc(coachProfile.description)}</textarea></label>
+      <button class="btn" type="submit">儲存教練資料</button>
+    </form></div>`;
+}
 function availabilityPanel(){
   if(!coachProfile)return '';
   if(!coachProfile.is_active)return '<p class="muted">教練通過審核後才能開放預約時段。</p>';
@@ -122,7 +137,31 @@ function render(){
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>${coachEditPanel()}${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    const coachEditForm=app.querySelector('#coachEditForm');
+    if(coachEditForm)coachEditForm.onsubmit=async e=>{
+      e.preventDefault();
+      if(!user||!coachProfile)return;
+      const submit=coachEditForm.querySelector('button[type="submit"]');
+      const f=new FormData(coachEditForm);
+      const displayName=String(f.get('display_name')||'').trim();
+      const sport=String(f.get('sport')||'').trim();
+      const area=String(f.get('area')||'').trim();
+      const price=Number(f.get('price'));
+      const description=String(f.get('description')||'').trim();
+      if(!displayName||!sport||!area||!description||!Number.isFinite(price)||price<=0||price>100000){alert('請確認教練資料及價格填寫正確');return}
+      submit.disabled=true;
+      try{
+        const {data,error}=await supabaseClient.rpc('sportlink_update_coach_profile',{
+          p_display_name:displayName,p_sport:sport,p_area:area,p_price:price,p_description:description
+        });
+        if(error)throw error;
+        if(data!==true)throw Error('儲存未成功，請確認資料及帳號權限');
+        await refreshData();
+        render();
+        alert('教練資料已儲存成功！');
+      }catch(err){alert('儲存失敗：'+errorText(err));submit.disabled=false}
+    };
     const availabilityForm=app.querySelector('#availabilityForm');
     if(availabilityForm)availabilityForm.onsubmit=async e=>{
       e.preventDefault();
