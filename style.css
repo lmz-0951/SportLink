@@ -144,3 +144,32 @@ body::before{filter:hue-rotate(133deg) saturate(.48);opacity:.65}
 body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .intro-section:before{border-color:#b99b7540}
 @media(prefers-reduced-motion:reduce){.btn,.feature-card,.coach-card,.item{transition:none!important}}
+
+/* SportLink Desktop PWA · Window breathing room (V7)
+   Applies only to installed standalone desktop windows.
+   Normal browser tabs and mobile/iPhone layouts are unchanged. */
+@media (display-mode: standalone) and (min-width: 1024px) {
+  body {
+    padding: 24px;
+  }
+  .site-header {
+    top: 24px;
+    border: 1px solid rgba(61, 80, 67, .10);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(24, 43, 34, .06);
+  }
+  .wrap {
+    margin-top: 16px;
+    padding-top: 36px;
+    border: 1px solid rgba(61, 80, 67, .08);
+    border-radius: 22px;
+    background: rgba(255, 254, 250, .58);
+    box-shadow: 0 12px 42px rgba(24, 43, 34, .045);
+  }
+  .foot {
+    margin-top: 16px;
+    border: 1px solid rgba(61, 80, 67, .10);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+}
