@@ -28,12 +28,24 @@ const btn=(name,action,cls='btn')=>`<button type="button" class="${cls}" data-ac
 const options=(arr,current)=>arr.map(v=>`<option ${v===current?'selected':''}>${esc(v)}</option>`).join('');
 const errorText=e=>e?.message||'請稍後再試';
 const dateToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const PHOTO_BUCKET='coach-photos';
+// photo_url stores a Storage object path (user-id/avatar-timestamp.ext), not an arbitrary URL.
+const photoSrc=c=>{
+  const path=String(c?.photo_url||'');
+  if(!c?.user_id||!path.startsWith(c.user_id+'/')||!/^[-a-zA-Z0-9_/ .]+\.(jpg|jpeg|png|webp)$/i.test(path))return '';
+  return supabaseClient.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+};
+const photoAvatar=(c,large=false)=>{
+  const url=photoSrc(c);
+  const size=large?'width:116px;height:116px;font-size:46px;':'width:58px;height:58px;font-size:28px;';
+  return `<div class="avatar" style="${size}flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;border-radius:50%">${url?`<img src="${esc(url)}" alt="${esc(c.display_name||'教練')}的照片" style="width:100%;height:100%;object-fit:cover" loading="lazy" referrerpolicy="no-referrer">`:'🏅'}</div>`;
+};
 const statusLabel={pending:'待教練確認',accepted:'已接受',rejected:'已拒絕',cancelled:'已取消'};
-const coachCard=c=>`<div class="card"><div class="card-top"><div class="avatar">${esc(c.icon||'🏅')}</div><div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${btn('查看 / 預約','coach:'+c.id)}</div></div>`;
+const coachCard=c=>`<div class="card"><div class="card-top">${photoAvatar(c)}<div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${btn('查看 / 預約','coach:'+c.id)}</div></div>`;
 const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>${esc(fullArea(j.area))} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
 const allCoaches=()=>liveCoaches;
 async function refreshData(){
-  const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active').eq('is_active',true).order('created_at',{ascending:false});
+  const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url').eq('is_active',true).order('created_at',{ascending:false});
   if(ce)throw ce;liveCoaches=publicCoaches||[];
   if(!user){admin=false;coachProfile=null;bookings=[];availabilitySlots=[];availabilityError='';return}
   const [a,c,b]=await Promise.all([
@@ -71,7 +83,14 @@ function coachEditPanel(){
   const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
   
   const choiceOptions=(values,selected)=>values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
-  return `<div class="section"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
+  return `<div class="section"><h2>教練大頭照</h2>
+    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:12px 0">${photoAvatar(coachProfile,true)}
+      <form id="coachPhotoForm" class="form" style="flex:1;min-width:220px">
+        <label>選擇照片（JPG、PNG、WebP，最多 5 MB）<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
+        <button class="btn" type="submit">上傳 / 更換大頭照</button>
+        <p class="muted small" id="coachPhotoMessage" role="status">照片公開顯示，請勿上傳證件或私人資訊。</p>
+      </form></div></div>
+    <div class="section"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
     <form class="form" id="coachEditForm">
       <label>公開顯示名稱<input name="display_name" maxlength="60" required value="${esc(coachProfile.display_name)}"></label>
       <label>運動項目<select name="sport" required>${choiceOptions(sportChoices,coachProfile.sport)}</select></label>
@@ -99,7 +118,7 @@ function render(){
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card"><h1>${esc(c.display_name)}</h1><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
+    app.innerHTML=`<div class="panel card"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
     const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
     const requestedPage=page;
     (async()=>{
@@ -151,6 +170,27 @@ function render(){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
     app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>${coachEditPanel()}${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    const coachPhotoForm=app.querySelector('#coachPhotoForm');
+    if(coachPhotoForm)coachPhotoForm.onsubmit=async e=>{
+      e.preventDefault();
+      if(!user||!coachProfile||coachProfile.user_id!==user.id)return;
+      const file=coachPhotoForm.querySelector('input[type=file]').files?.[0];
+      const message=coachPhotoForm.querySelector('#coachPhotoMessage');
+      const submit=coachPhotoForm.querySelector('button[type=submit]');
+      const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file?.type];
+      if(!file||!ext){message.textContent='請選擇 JPG、PNG 或 WebP 照片。';return}
+      if(file.size>5*1024*1024){message.textContent='照片不可超過 5 MB。';return}
+      submit.disabled=true;message.textContent='照片上傳中…';
+      try{
+        const path=`${user.id}/avatar-${Date.now()}.${ext}`;
+        const {error:uploadError}=await supabaseClient.storage.from(PHOTO_BUCKET).upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+        if(uploadError)throw uploadError;
+        const {data,error}=await supabaseClient.rpc('sportlink_set_coach_photo',{p_photo_path:path});
+        if(error)throw error;
+        if(data!==true)throw Error('照片已上傳，但更新教練資料失敗');
+        await refreshData();render();alert('教練大頭照更新成功！');
+      }catch(err){console.error(err);message.textContent='照片處理失敗：'+errorText(err);submit.disabled=false}
+    };
     const coachEditForm=app.querySelector('#coachEditForm');
     if(coachEditForm)coachEditForm.onsubmit=async e=>{
       e.preventDefault();
