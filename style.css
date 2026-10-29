@@ -103,3 +103,44 @@ body::before{
 .field:focus,.form input:focus,.form select:focus,.form textarea:focus{border-color:#83a9fa;box-shadow:0 0 0 4px rgba(63,112,239,.09)}
 @media(max-width:700px){.feature-card{padding:26px 23px;border-radius:22px 10px 22px 10px}.feature-card::before{font-size:42px}.coach-card{border-radius:12px 24px 12px 24px;padding:23px 20px}.btn{min-height:42px;padding:11px 16px}.feature-card:hover,.coach-card:hover,.item:hover{transform:none}}
 @media(prefers-reduced-motion:reduce){.btn,.btn::after,.feature-card,.coach-card,.item{transition:none!important}}
+
+
+/* SportLink V6 · Graphite / Copper — palette experiment */
+:root{--navy:#202b2b;--blue:#bd653e;--muted:#7a817b;--line:#e6e6df;color:#26332f;background:#f7f7f2}
+body{background:radial-gradient(ellipse 44% 28% at 0% 20%,rgba(199,149,105,.12),transparent 80%),radial-gradient(ellipse 36% 25% at 100% 64%,rgba(118,155,135,.13),transparent 80%),#f7f7f2}
+.site-header{background:rgba(251,251,247,.94);border-bottom-color:#e5e6df}
+.brand span,.foot strong span{color:#bd653e}.brand i,.foot strong i{color:#6c9781}
+.nav button.active,.nav-links button:hover{color:#a65331;background:#f7e9de}.nav .login{background:#253b35}.nav .login:hover{background:#375a4c}
+.hero{background:radial-gradient(circle at 78% 42%,#496454 0%,transparent 45%),linear-gradient(125deg,#1c302b,#273c36 74%,#4a5542)}
+.hero h1 em{color:#e4ad7f}.hero-eyebrow{color:#e8d6c0}.hero p{color:#e1e7df}.hero-ball{background:linear-gradient(145deg,#d8b58b,#a66c47 52%,#4d4337);box-shadow:inset -18px -22px 34px #3a332a99,0 30px 90px #172b25}.hero-ball span{color:#f3dec1}
+.hero-spark{color:#edc89e;text-shadow:0 0 22px #c69b74}.hero-orbit{border-color:#e7d7bd45}.live-dot{background:#9fddbd;box-shadow:0 0 0 4px #9fddbd25}
+.hero:before{background-image:radial-gradient(#e5d8c3 1px,transparent 1px)}
+.hero:after{background:radial-gradient(ellipse,#bb936b33,transparent 70%)}
+.eyebrow{color:#ae6945}.section h2,.card h3,.closing-banner h2{color:#26352f}
+.btn{background:linear-gradient(105deg,#b45b36,#d08050);color:white;box-shadow:0 8px 20px #a75e3828}
+.btn:hover{background:linear-gradient(105deg,#a34f2f,#c66d40);box-shadow:0 12px 24px #a75e3833}
+.btn.secondary,.tabs button,.nav-links button.active{background:#f7e9de;color:#995333;box-shadow:none}
+.btn.secondary:hover{background:#f0d9c7}.btn.ghost{background:#fff9f1;color:#33443b}.btn.ghost:hover{background:#f5e8d6}
+.card{border-color:#e4e6dd;background:#fffefa;box-shadow:0 10px 36px #3c4a360a}
+.feature-card{background:linear-gradient(155deg,#fffefa 60%,#f8f3e9);border-color:#e5e4d9}
+.feature-icon{background:#f6e9dd;color:#b56540}.feature-card:after{color:#b86d49}
+.feature-card:hover,.coach-card:hover{border-color:#d8c1a9;box-shadow:0 22px 48px #5b45341c}
+.coach-card{background:linear-gradient(160deg,#fffefa 68%,#f8f3e9);border-color:#e5e2d8;box-shadow:0 15px 36px #53463312}
+.coach-card::before{background:linear-gradient(#c46e45,#82a68b)}
+.coach-card .avatar{box-shadow:0 0 0 5px #f2e9dd}
+.coach-card .row{border-top-color:#eee7dd}.coach-card .price,.price{color:#a95735}
+.coach-card:hover{border-color:#d9c1a7;box-shadow:0 25px 54px #53463320}
+.pill{background:linear-gradient(110deg,#f7eadd,#f4f0e7);border-color:#eadbc8;color:#995633}
+.muted{color:#7a827b}.item{background:#fffefa;border-color:#e4e4da}.item:hover{border-color:#d8c8b6;box-shadow:0 12px 32px #584d3b15}
+.notice{background:#edf4ed;color:#416b53;border-left-color:#779d83}
+.field,.form input,.form select,.form textarea{border-color:#dedfd4;background:#fffefa;color:#2b3c33}
+.field:focus,.form input:focus,.form select:focus,.form textarea:focus{border-color:#c68b66;box-shadow:0 0 0 4px #c68b661c}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:#d4a681}
+.closing-banner{background:linear-gradient(110deg,#f1e9dc,#edf2e8);border-color:#e1dacd}
+.closing-banner .btn.ghost{background:#263d33;color:#fff}
+.foot{background:#fcfcf8;border-top-color:#e6e6dd}.foot strong{color:#293b32}
+/* V4 backdrop retains the same geometry, with warmer copper/sage lighting. */
+body::before{filter:hue-rotate(133deg) saturate(.48);opacity:.65}
+body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
+.intro-section:before{border-color:#b99b7540}
+@media(prefers-reduced-motion:reduce){.btn,.feature-card,.coach-card,.item{transition:none!important}}
