@@ -1,0 +1,59 @@
+:root{font-family:system-ui,'Noto Sans TC',sans-serif;color:#142c3b;background:#f5f8fa}
+*{box-sizing:border-box}
+body{margin:0}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0}
+header{background:#fff;border-bottom:1px solid #e4ebef;position:sticky;top:0;z-index:5}
+.nav{max-width:1180px;margin:auto;padding:15px 22px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.brand{font-size:23px;font-weight:850;color:#12394d;margin-right:auto}
+.brand span{color:#13a77e}
+.nav button{background:none;color:#375265;padding:8px}
+.nav button.active{color:#07946f;font-weight:750}
+.nav .login{background:#103b50;color:white;border-radius:10px;padding:10px 15px}
+.wrap{max-width:1180px;margin:auto;padding:28px 22px 60px}
+.hero{background:linear-gradient(125deg,#10394e,#176b68);color:white;border-radius:23px;padding:48px 45px;display:grid;grid-template-columns:1.2fr .8fr;gap:25px}
+.hero h1{font-size:clamp(30px,4vw,49px);line-height:1.25;margin:12px 0}
+.hero p{color:#d4ece8;line-height:1.8}
+.hero .art{display:grid;place-content:center;text-align:center;font-size:92px;background:#ffffff13;border-radius:20px}
+.btn{background:#0aa67b;color:#fff;padding:12px 19px;border-radius:11px;font-weight:700}
+.btn.secondary{background:#e8f5f1;color:#08775a}
+.btn.ghost{background:#fff;color:#12536a}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.section{margin-top:32px}
+.section h2{font-size:23px;margin:0 0 17px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:white;border:1px solid #e3eaee;border-radius:16px;padding:21px;box-shadow:0 4px 16px #173e4d08}
+.card h3{margin:6px 0 9px}
+.muted{color:#698090;font-size:14px}
+.pill{display:inline-block;border-radius:30px;background:#e3f6ef;color:#098261;font-size:12px;padding:5px 10px;font-weight:700}
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:19px}
+.field{padding:12px;border:1px solid #d7e3e9;border-radius:10px;background:white;min-width:160px;max-width:100%}
+.card-top{display:flex;align-items:center;gap:14px}
+.avatar{height:60px;width:60px;background:#e5f4f0;border-radius:14px;display:grid;place-items:center;font-size:29px}
+.price{color:#088766;font-weight:800;font-size:19px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.card p{line-height:1.65}
+.empty{padding:28px;text-align:center;color:#698090}
+.panel{max-width:650px;margin:auto}
+.form{display:grid;gap:13px}
+.form label{font-size:13px;font-weight:700}
+.form input,.form select,.form textarea{width:100%;padding:12px;border:1px solid #d8e3e8;border-radius:10px;background:white;margin-top:5px}
+.form textarea{min-height:80px}
+.notice{padding:13px;background:#e8f6f1;border-radius:10px;color:#116d55;margin:12px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.tabs button{padding:10px 14px;border-radius:9px;background:#e9eff2;color:#395463}
+.tabs button.active{background:#103e50;color:white}
+.list{display:grid;gap:11px}
+.item{background:white;border:1px solid #e2eaf0;border-radius:12px;padding:16px}
+.small{font-size:13px}
+.foot{text-align:center;color:#8496a0;padding:25px;border-top:1px solid #e1e9ed}
+.hidden{display:none!important}
+@media(max-width:750px){.hero{grid-template-columns:1fr;padding:28px}
+.hero .art{display:none}
+.grid{grid-template-columns:1fr}
+.nav{gap:6px}
+.nav button{font-size:13px;padding:7px}
+.brand{width:100%}
+.wrap{padding:18px 15px 40px}
+}
+
