@@ -1,5 +1,18 @@
-// SportLink 雲端預約版：保留原本的示範教練與代課資料
-const coaches=[{id:1,name:'余賢',sport:'游泳',area:'大安區',price:900,years:6,icon:'🏊',desc:'兒童游泳、成人初學與水中安全教學',certificate:'游泳教練證照（示範）'},{id:2,name:'李岷澤',sport:'羽球',area:'中山區',price:1200,years:8,icon:'🏸',desc:'羽球初階至進階技術與步伐訓練',certificate:'羽球教練證照（示範）'},{id:3,name:'王宇昕',sport:'健身',area:'信義區',price:1500,years:5,icon:'🏋️',desc:'肌力訓練、核心與體能提升',certificate:'體適能教練證照（示範）'},{id:4,name:'張家豪',sport:'籃球',area:'士林區',price:800,years:4,icon:'🏀',desc:'青少年籃球基礎與團隊訓練',certificate:'籃球教練證照（示範）'}];
+// SportLink 雲端預約版：只顯示已核准的真實教練
+const REGIONS={
+  '台北市':['中正區','大同區','中山區','松山區','大安區','萬華區','信義區','士林區','北投區','內湖區','南港區','文山區'],
+  '新北市':['板橋區','三重區','中和區','永和區','新莊區','新店區','樹林區','鶯歌區','三峽區','淡水區','汐止區','瑞芳區','土城區','蘆洲區','五股區','泰山區','林口區','深坑區','石碇區','坪林區','三芝區','石門區','八里區','平溪區','雙溪區','貢寮區','金山區','萬里區','烏來區'],
+  '桃園市':['桃園區','中壢區','平鎮區','八德區','楊梅區','蘆竹區','大溪區','龍潭區','龜山區','大園區','觀音區','新屋區','復興區']
+};
+const ALL_AREAS=Object.entries(REGIONS).flatMap(([city,districts])=>districts.map(d=>city+d));
+// 舊資料只存行政區時，沿用原本的台北市設定；新資料儲存完整縣市與行政區。
+const fullArea=area=>{const a=String(area||'').trim();return /^(台北市|臺北市|新北市|桃園市)/.test(a)?a:'台北市'+a};
+const areaOptions=(selected,includeAll=false)=>{
+  const current=selected?fullArea(selected):'';
+  const values=[...(includeAll?['全部']:[]),...ALL_AREAS];
+  if(current&&!values.includes(current))values.push(current);
+  return values.map(v=>`<option value="${esc(v)}" ${v===(includeAll?(selected||'全部'):current)?'selected':''}>${esc(v)}</option>`).join('');
+};
 const initialJobs=[{id:1,sport:'游泳',area:'大安區',date:'2026-11-06',time:'14:00',hours:2,rate:800,detail:'兒童初級游泳課，需具備教學經驗',owner:'示範教練',status:'open'},{id:2,sport:'羽球',area:'中山區',date:'2026-11-08',time:'10:00',hours:2,rate:1100,detail:'成人雙打基礎課程',owner:'示範教練',status:'open'}];
 const SUPABASE_URL='https://szlfgarfcgqtqalvljil.supabase.co';
 const SUPABASE_KEY='sb_publishable_bLDjhYZQGgquuYL8MuYFug__NScOGUB';
@@ -16,9 +29,9 @@ const options=(arr,current)=>arr.map(v=>`<option ${v===current?'selected':''}>${
 const errorText=e=>e?.message||'請稍後再試';
 const dateToday=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
 const statusLabel={pending:'待教練確認',accepted:'已接受',rejected:'已拒絕',cancelled:'已取消'};
-const coachCard=c=>`<div class="card"><div class="card-top"><div class="avatar">${esc(c.icon||'🏅')}</div><div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · 台北市${esc(c.area)}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${c.demo?'<span class="pill">示範資料・不可預約</span>':btn('查看 / 預約','coach:'+c.id)}</div></div>`;
-const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>台北市${esc(j.area)} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
-const allCoaches=()=>[...liveCoaches,...coaches.map(c=>({...c,demo:true}))];
+const coachCard=c=>`<div class="card"><div class="card-top"><div class="avatar">${esc(c.icon||'🏅')}</div><div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${btn('查看 / 預約','coach:'+c.id)}</div></div>`;
+const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>${esc(fullArea(j.area))} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
+const allCoaches=()=>liveCoaches;
 async function refreshData(){
   const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active').eq('is_active',true).order('created_at',{ascending:false});
   if(ce)throw ce;liveCoaches=publicCoaches||[];
@@ -56,13 +69,13 @@ function bookingCard(b){
 function coachEditPanel(){
   if(!coachProfile)return '';
   const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
-  const areaChoices=[...new Set([coachProfile.area,'大安區','中山區','信義區','士林區'])];
+  
   const choiceOptions=(values,selected)=>values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
   return `<div class="section"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
     <form class="form" id="coachEditForm">
       <label>公開顯示名稱<input name="display_name" maxlength="60" required value="${esc(coachProfile.display_name)}"></label>
       <label>運動項目<select name="sport" required>${choiceOptions(sportChoices,coachProfile.sport)}</select></label>
-      <label>授課地區（台北市）<select name="area" required>${choiceOptions(areaChoices,coachProfile.area)}</select></label>
+      <label>授課地區（雙北及桃園）<select name="area" required>${areaOptions(coachProfile.area)}</select></label>
       <label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" step="1" required value="${esc(coachProfile.price)}"></label>
       <label>教學介紹<textarea name="description" maxlength="1000" required>${esc(coachProfile.description)}</textarea></label>
       <button class="btn" type="submit">儲存教練資料</button>
@@ -82,11 +95,11 @@ function availabilityPanel(){
 }
 function render(){
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-  if(page==='home')app.innerHTML=`<section class="hero"><div><span class="pill">📍 台北市試營運</span><h1>找到好教練，<br>也找到下一個機會。</h1><p>學生輕鬆預約專業運動教練；教練管理課程、尋找學生，也能快速發布與承接代課。</p><div class="hero-actions">${btn('探索運動教練','go:coaches')}${btn('尋找代課機會','go:substitutions','btn ghost')}</div></div><div class="art">🏊 🏸<br>🏀 🏋️</div></section><section class="section"><h2>你可以在 SportLink 做什麼？</h2><div class="grid"><div class="card"><h3>🎓 學生找教練</h3><p>尋找經平台核准的教練並提出預約。</p>${btn('找教練','go:coaches','btn secondary')}</div><div class="card"><h3>💪 教練管理課程</h3><p>申請上架，查看學生預約並回覆。</p>${btn('進入管理中心','go:dashboard','btn secondary')}</div><div class="card"><h3>🔄 教練代課媒合</h3><p>代課功能目前仍是本機示範。</p>${btn('找代課','go:substitutions','btn secondary')}</div></div></section><section class="section"><div class="row"><h2>精選教練</h2>${btn('查看全部','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')}</div></section>`;
-  else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">標示「示範資料」的教練尚未連結真實帳號，無法預約。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${options(['全部','大安區','中山區','信義區','士林區'],areaFilter)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||c.area===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
+  if(page==='home')app.innerHTML=`<section class="hero"><div><span class="pill">📍 雙北・桃園試營運</span><h1>找到好教練，<br>也找到下一個機會。</h1><p>學生輕鬆預約專業運動教練；教練管理課程、尋找學生，也能快速發布與承接代課。</p><div class="hero-actions">${btn('探索運動教練','go:coaches')}${btn('尋找代課機會','go:substitutions','btn ghost')}</div></div><div class="art">🏊 🏸<br>🏀 🏋️</div></section><section class="section"><h2>你可以在 SportLink 做什麼？</h2><div class="grid"><div class="card"><h3>🎓 學生找教練</h3><p>尋找經平台核准的教練並提出預約。</p>${btn('找教練','go:coaches','btn secondary')}</div><div class="card"><h3>💪 教練管理課程</h3><p>申請上架，查看學生預約並回覆。</p>${btn('進入管理中心','go:dashboard','btn secondary')}</div><div class="card"><h3>🔄 教練代課媒合</h3><p>代課功能目前仍是本機示範。</p>${btn('找代課','go:substitutions','btn secondary')}</div></div></section><section class="section"><div class="row"><h2>精選教練</h2>${btn('查看全部','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')}</div></section>`;
+  else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card"><h1>${esc(c.display_name)}</h1><p class="muted">${esc(c.sport)} · 台北市${esc(c.area)}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
+    app.innerHTML=`<div class="panel card"><h1>${esc(c.display_name)}</h1><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
     const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
     const requestedPage=page;
     (async()=>{
@@ -180,7 +193,7 @@ function render(){
   }
   else if(page==='coach-apply'){
     if(!user){page='account';render();return}if(coachProfile){page='dashboard';render();return}
-    app.innerHTML=`<div class="panel card"><h1>申請教練上架</h1><p class="muted">送出後等待平台管理員核准。核准前不會開放學生預約。</p><form class="form" id="coachApply"><label>公開顯示名稱<input name="name" required maxlength="60" value="${esc(user.name)}"></label><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>台北市行政區<select name="area">${options(['大安區','中山區','信義區','士林區'],'大安區')}</select></label><label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" required></label><label>教學介紹<textarea name="description" maxlength="1000" required></textarea></label><button class="btn">送出教練申請</button></form></div>`;
+    app.innerHTML=`<div class="panel card"><h1>申請教練上架</h1><p class="muted">送出後等待平台管理員核准。核准前不會開放學生預約。</p><form class="form" id="coachApply"><label>公開顯示名稱<input name="name" required maxlength="60" value="${esc(user.name)}"></label><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>授課地區（雙北及桃園）<select name="area">${areaOptions('台北市大安區')}</select></label><label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" required></label><label>教學介紹<textarea name="description" maxlength="1000" required></textarea></label><button class="btn">送出教練申請</button></form></div>`;
     app.querySelector('#coachApply').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),submit=e.target.querySelector('button');submit.disabled=true;try{const {error}=await supabaseClient.from('coaches').insert({user_id:user.id,display_name:String(f.get('name')).trim(),sport:f.get('sport'),area:f.get('area'),price:Number(f.get('price')),description:String(f.get('description')).trim(),is_active:false});if(error)throw error;alert('教練申請已送出，等待管理員審核');page='dashboard';await reload()}catch(err){alert('送出失敗：'+errorText(err))}finally{submit.disabled=false}};
   }
   else if(page==='admin'){
@@ -189,8 +202,8 @@ function render(){
     supabaseClient.from('coaches').select('id,display_name,sport,area,price,is_active').order('created_at',{ascending:false}).then(({data,error})=>{if(page!=='admin')return;const target=app.querySelector('#adminCoaches');if(!target)return;target.innerHTML=error?`<div class="item">讀取失敗：${esc(error.message)}</div>`:(data||[]).map(c=>`<div class="item"><div class="row"><b>${esc(c.display_name)} · ${esc(c.sport)} · ${esc(c.area)}</b><span class="pill">${c.is_active?'已上架':'待審核／已下架'}</span></div><p class="muted">NT$${Number(c.price).toLocaleString()} / 小時</p>${btn(c.is_active?'下架教練':'核准上架','admin-coach:'+c.id+':'+(!c.is_active),'btn secondary')}</div>`).join('')||'<div class="item muted">尚無教練申請。</div>'});
   }
   else if(page==='substitutions')app.innerHTML=`<div class="row"><div><h1>代課媒合中心（示範）</h1><p class="muted">此區資料僅存在目前瀏覽器，尚未雲端同步。</p></div>${btn('＋ 發布代課需求','go:newjob')}</div><div class="grid">${jobs.filter(j=>j.status==='open').map(jobCard).join('')||'<p>目前沒有代課需求。</p>'}</div>`;
-  else if(page.startsWith('job:')){const j=jobs.find(x=>x.id===+page.slice(4));if(!j){page='substitutions';render();return}app.innerHTML=`<div class="panel card"><span class="pill">${esc(j.sport)} · 本機示範</span><h1>${esc(j.sport)}教練代課</h1><p>📍 台北市${esc(j.area)}</p><p>📅 ${esc(j.date)} ${esc(j.time)}</p><p>${esc(j.detail)}</p>${btn('申請這個代課（示範）','apply:'+j.id)}</div>`}
-  else if(page==='newjob'){if(!user){page='account';render();return}app.innerHTML=`<div class="panel card"><h1>發布代課需求（本機示範）</h1><form class="form" id="jobForm"><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>行政區<select name="area">${options(['大安區','中山區','信義區','士林區'],'大安區')}</select></label><label>日期<input name="date" type="date" min="${dateToday()}" required></label><label>時間<input name="time" type="time" required></label><label>時數<input name="hours" type="number" min="1" max="12" value="2" required></label><label>時薪<input name="rate" type="number" min="1" required></label><label>需求說明<textarea name="detail" required></textarea></label><button class="btn">發布（示範）</button></form></div>`;app.querySelector('#jobForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);jobs.unshift({id:Date.now(),sport:f.get('sport'),area:f.get('area'),date:f.get('date'),time:f.get('time'),hours:Number(f.get('hours')),rate:Number(f.get('rate')),detail:f.get('detail'),owner:user.name,status:'open'});save('jobs',jobs);page='substitutions';render()}}
+  else if(page.startsWith('job:')){const j=jobs.find(x=>x.id===+page.slice(4));if(!j){page='substitutions';render();return}app.innerHTML=`<div class="panel card"><span class="pill">${esc(j.sport)} · 本機示範</span><h1>${esc(j.sport)}教練代課</h1><p>📍 ${esc(fullArea(j.area))}</p><p>📅 ${esc(j.date)} ${esc(j.time)}</p><p>${esc(j.detail)}</p>${btn('申請這個代課（示範）','apply:'+j.id)}</div>`}
+  else if(page==='newjob'){if(!user){page='account';render();return}app.innerHTML=`<div class="panel card"><h1>發布代課需求（本機示範）</h1><form class="form" id="jobForm"><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>行政區<select name="area">${areaOptions('台北市大安區')}</select></label><label>日期<input name="date" type="date" min="${dateToday()}" required></label><label>時間<input name="time" type="time" required></label><label>時數<input name="hours" type="number" min="1" max="12" value="2" required></label><label>時薪<input name="rate" type="number" min="1" required></label><label>需求說明<textarea name="detail" required></textarea></label><button class="btn">發布（示範）</button></form></div>`;app.querySelector('#jobForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);jobs.unshift({id:Date.now(),sport:f.get('sport'),area:f.get('area'),date:f.get('date'),time:f.get('time'),hours:Number(f.get('hours')),rate:Number(f.get('rate')),detail:f.get('detail'),owner:user.name,status:'open'});save('jobs',jobs);page='substitutions';render()}}
 }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
