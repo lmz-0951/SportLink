@@ -21,7 +21,7 @@ const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('sl_'+k))??d}catch
 const save=(k,v)=>localStorage.setItem('sl_'+k,JSON.stringify(v));
 let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',sportFilter='全部',areaFilter='全部';
 let jobs=load('jobs',initialJobs),applications=load('applications',[]);
-let availabilitySlots=[],availabilityError='';
+let availabilitySlots=[],availabilityError='',coachReviews=[],myReviews=[];
 const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(name,action,cls='btn')=>`<button type="button" class="${cls}" data-action="${action}">${name}</button>`;
@@ -41,14 +41,19 @@ const photoAvatar=(c,large=false)=>{
   const size=large?'width:116px;height:116px;font-size:46px;':'width:58px;height:58px;font-size:28px;';
   return `<div class="avatar" style="${size}flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;border-radius:50%">${url?`<img src="${esc(url)}" alt="${esc(c.display_name||'教練')}的照片" style="width:100%;height:100%;object-fit:cover" loading="lazy" referrerpolicy="no-referrer">`:'🏅'}</div>`;
 };
-const statusLabel={pending:'待教練確認',accepted:'已接受',rejected:'已拒絕',cancelled:'已取消'};
-const coachCard=c=>`<div class="card"><div class="card-top">${photoAvatar(c)}<div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${btn('查看 / 預約','coach:'+c.id)}</div></div>`;
+const statusLabel={pending:'待教練確認',accepted:'已接受',rejected:'已拒絕',cancelled:'已取消',completed:'已完成'};
+const reviewStars=n=>'★'.repeat(Math.max(0,Math.min(5,Number(n)||0)))+'☆'.repeat(5-Math.max(0,Math.min(5,Number(n)||0)));
+const coachReviewSummary=id=>{const rs=coachReviews.filter(r=>r.coach_id===id);return rs.length?`<span class="muted">⭐ ${(rs.reduce((a,r)=>a+Number(r.rating),0)/rs.length).toFixed(1)}（${rs.length} 則評價）</span>`:'<span class="muted">尚無評價</span>'};
+const coachReviewPanel=id=>{const rs=coachReviews.filter(r=>r.coach_id===id);return `<section class="section"><h2>學生評價</h2><p>${coachReviewSummary(id)}</p>${rs.length?`<div class="list">${rs.map(r=>`<div class="item"><b style="color:#d18a00">${reviewStars(r.rating)}</b><span class="muted"> · ${esc(String(r.created_at||'').slice(0,10))}</span>${r.comment?`<p style="white-space:pre-wrap">${esc(r.comment)}</p>`:''}</div>`).join('')}</div>`:'<p class="muted">目前還沒有學生評價。</p>'}</section>`};
+const coachCard=c=>`<div class="card"><div class="card-top">${photoAvatar(c)}<div><h3>${esc(c.display_name||c.name)}</h3><div class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</div><div>${coachReviewSummary(c.id)}</div></div></div><p>${esc(c.description||c.desc||'')}</p><div class="row"><div><span class="price">NT$${Number(c.price).toLocaleString()}</span><span class="muted"> / 小時</span></div>${btn('查看 / 預約','coach:'+c.id)}</div></div>`;
 const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>${esc(fullArea(j.area))} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
 const allCoaches=()=>liveCoaches;
 async function refreshData(){
   const {data:publicCoaches,error:ce}=await supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url,teaching_years,teaching_experience,certificate_name').eq('is_active',true).order('created_at',{ascending:false});
   if(ce)throw ce;liveCoaches=publicCoaches||[];
-  if(!user){admin=false;coachProfile=null;bookings=[];availabilitySlots=[];availabilityError='';return}
+  const {data:reviews,error:re}=await supabaseClient.from('coach_reviews').select('booking_id,coach_id,rating,comment,created_at').order('created_at',{ascending:false});
+  if(re)throw re;coachReviews=reviews||[];
+  if(!user){admin=false;coachProfile=null;bookings=[];myReviews=[];availabilitySlots=[];availabilityError='';return}
   const [a,c,b]=await Promise.all([
     supabaseClient.rpc('is_platform_admin'),
     supabaseClient.from('coaches').select('*').eq('user_id',user.id).maybeSingle(),
@@ -56,6 +61,8 @@ async function refreshData(){
   ]);
   if(a.error)throw a.error;if(c.error)throw c.error;if(b.error)throw b.error;
   admin=!!a.data;coachProfile=c.data;bookings=b.data||[];
+  const {data:ownReviews,error:ownReviewError}=await supabaseClient.from('coach_reviews').select('booking_id').eq('student_id',user.id);
+  if(ownReviewError)throw ownReviewError;myReviews=ownReviews||[];
   availabilitySlots=[];availabilityError='';
   if(coachProfile){
     const {data:slots,error:slotError}=await supabaseClient.from('coach_availability')
@@ -76,8 +83,11 @@ function bookingCard(b){
   // lesson_date / lesson_time are Taiwan local calendar values in this project.
   const lessonStart=new Date(`${b.lesson_date}T${String(b.lesson_time).slice(0,8)}`);
   const canCancel=isStudent&&['pending','accepted'].includes(b.status)&&Number.isFinite(lessonStart.getTime())&&lessonStart.getTime()-Date.now()>=24*60*60*1000;
+  const canComplete=owned&&b.status==='accepted'&&Number.isFinite(lessonStart.getTime())&&lessonStart.getTime()<=Date.now();
+  const canReview=isStudent&&!coachProfile&&user?.role!=='coach'&&b.status==='completed'&&!myReviews.some(r=>r.booking_id===b.id);
+  const reviewed=isStudent&&b.status==='completed'&&myReviews.some(r=>r.booking_id===b.id);
   const cancelInfo=isStudent&&['pending','accepted'].includes(b.status)&&!canCancel?'<p class="muted small">距離上課不足 24 小時，無法自行取消，請聯絡教練。</p>':'';
-  return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${cancelInfo}</div>`;
+  return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${canComplete?btn('標記課程完成','booking-complete:'+b.id,'btn secondary'):''}${canReview?btn('評價教練（自願）','review:'+b.id,'btn secondary'):''}${reviewed?'<p class="muted small">已提交評價，無法修改或刪除。</p>':''}${cancelInfo}</div>`;
 }
 function coachEditPanel(){
   if(!coachProfile)return '';
@@ -133,7 +143,7 @@ function render(){
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}<p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
+    app.innerHTML=`<div class="panel card"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}${coachReviewPanel(c.id)}<p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
     const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
     const requestedPage=page;
     (async()=>{
@@ -177,7 +187,24 @@ function render(){
       }finally{submit.disabled=false}
     };
   }
-  else if(page==='account'){
+   else if(page.startsWith('review:')){
+     if(!user){page='account';render();return}
+     const booking=bookings.find(b=>b.id===page.slice(7));
+     if(!booking||booking.student_id!==user.id||booking.status!=='completed'||coachProfile||user.role==='coach'||myReviews.some(r=>r.booking_id===booking.id)){
+       alert('這筆課程目前無法評價，可能尚未完成、已評價或帳號具有教練身分。');page='dashboard';render();return;
+     }
+     app.innerHTML=`<div class="panel card"><h1>評價這堂課程</h1><p class="muted">${esc(booking.coaches?.sport||'課程')} · ${esc(booking.coaches?.display_name||'教練')} · ${esc(booking.lesson_date)}</p><p>不想評價可以直接離開，不影響預約紀錄。</p><form class="form" id="reviewForm"><label>星級（送出時必填）<select name="rating" required><option value="">請選擇星級</option><option value="5">★★★★★ 5 顆星</option><option value="4">★★★★☆ 4 顆星</option><option value="3">★★★☆☆ 3 顆星</option><option value="2">★★☆☆☆ 2 顆星</option><option value="1">★☆☆☆☆ 1 顆星</option></select></label><label>文字評論（選填）<textarea name="comment" maxlength="1000" placeholder="可以只給星星，不用寫評論"></textarea></label><p class="muted">⚠️ 評價一旦提交，就無法修改或刪除，請確認星級與內容後再送出。</p><div class="row"><button class="btn" type="submit">提交評價</button>${btn('先不評價，返回管理中心','go:dashboard','btn secondary')}</div><p id="reviewMessage" role="status" class="muted"></p></form></div>`;
+     const reviewForm=app.querySelector('#reviewForm');
+     reviewForm.onsubmit=async e=>{
+       e.preventDefault();const f=new FormData(reviewForm),rating=Number(f.get('rating')),comment=String(f.get('comment')||'').trim(),submit=reviewForm.querySelector('button[type=submit]'),message=reviewForm.querySelector('#reviewMessage');
+       if(!Number.isInteger(rating)||rating<1||rating>5){message.textContent='請先選擇 1～5 顆星。';return}
+       if(!confirm('確定提交評價？送出後無法修改或刪除。'))return;
+       submit.disabled=true;message.textContent='提交中…';
+       try{const {data,error}=await supabaseClient.rpc('sportlink_submit_review',{p_booking_id:booking.id,p_rating:rating,p_comment:comment||null});if(error)throw error;if(data!==true)throw Error('無法提交，請確認課程已完成、尚未評價且帳號不是教練');page='dashboard';await reload();alert('評價已成功送出，謝謝你的回饋！')}
+       catch(err){console.error(err);message.textContent='提交失敗：'+errorText(err);submit.disabled=false}
+     };
+   }
+   else if(page==='account'){
     app.innerHTML=`<div class="panel card"><h1>SportLink 會員</h1><p class="muted">使用 Email 與密碼登入。註冊後請到信箱完成驗證。</p>${user?`<p class="notice">目前登入：${esc(user.name)}（${esc(user.role)}）${admin?' · 平台管理員':''}</p>${btn('登出','logout','btn secondary')}`:`<form class="form" id="accountForm"><label>電子郵件<input name="email" type="email" autocomplete="email" required></label><label>密碼（至少 6 碼）<input name="password" type="password" minlength="6" autocomplete="current-password" required></label><div id="signupFields" hidden><label>顯示名稱<input name="name" maxlength="30" placeholder="暱稱"></label><label>主要身分<select name="role"><option value="student">學生</option><option value="coach">教練</option></select></label></div><div class="row"><button class="btn" type="submit" id="authSubmit">登入</button>${btn('切換成註冊','toggle-signup','btn secondary')}</div><p id="authMessage" class="muted" role="status"></p></form>`}</div>`;
     const form=app.querySelector('#accountForm');if(form)form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('#authSubmit'),message=form.querySelector('#authMessage'),signup=!form.querySelector('#signupFields').hidden,f=new FormData(form);submit.disabled=true;message.textContent='處理中…';try{let result;if(signup){const name=String(f.get('name')||'').trim();if(!name)throw Error('請填寫顯示名稱');result=await supabaseClient.auth.signUp({email:String(f.get('email')),password:String(f.get('password')),options:{emailRedirectTo:location.origin,data:{display_name:name,role:String(f.get('role'))}}})}else result=await supabaseClient.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(result.error)throw result.error;if(signup&&!result.data.session){message.textContent='註冊申請已送出。請先完成 Email 驗證，再登入。';return}await refreshAuthUser();page='dashboard';await reload()}catch(err){message.textContent='操作失敗：'+errorText(err)}finally{submit.disabled=false}};
   }
@@ -305,7 +332,15 @@ document.addEventListener('click',async e=>{
   if(b.dataset.page){page=b.dataset.page;render();window.scrollTo(0,0);return}
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
   if(cmd==='go'||cmd==='coach'||cmd==='job'){page=cmd==='go'?id:a;render();window.scrollTo(0,0);return}
-  if(cmd==='reload'||cmd==='admin-refresh'){await reload();return}
+   if(cmd==='reload'||cmd==='admin-refresh'){await reload();return}
+   if(cmd==='review'){page='review:'+id;render();window.scrollTo(0,0);return}
+   if(cmd==='booking-complete'){
+     if(!coachProfile||!confirm('確定這堂課程已經完成？完成後學生即可選擇是否評價。'))return;
+     b.disabled=true;
+     try{const {data,error}=await supabaseClient.rpc('sportlink_change_booking_status',{p_booking_id:id,p_action:'complete'});if(error)throw error;if(!data)throw Error('課程尚未開始、狀態不符或沒有權限');await reload()}
+     catch(err){alert('標記完成失敗：'+errorText(err));b.disabled=false}
+     return;
+   }
   if(cmd==='availability-remove'){
     if(!coachProfile?.is_active)return;
     if(!confirm('確定移除這個開放時段？已有預約的時段可能無法移除。'))return;
