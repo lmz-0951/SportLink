@@ -207,24 +207,30 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 }
 
 
-/* SportLink V9.1 — fixed desktop PWA navigation.
-   Reserve layout space so the fixed navigation does not cover the hero.
-   Normal browser tabs and iPhone/mobile layouts remain unchanged. */
-@media (display-mode: standalone) and (min-width: 1024px),
-       (display-mode: window-controls-overlay) and (min-width: 1024px) {
+/* SportLink V9.2 — keep the white navigation fixed in its current position.
+   Desktop installed app only; browser tabs and iPhone are unchanged.
+   Fixed navigation is taken out of document flow, so reserve its space
+   on the page and make sure it always paints above the scrolling content. */
+@media (min-width: 1024px) and (display-mode: standalone),
+       (min-width: 1024px) and (display-mode: window-controls-overlay) {
+  html { scroll-padding-top: 150px; }
   body { padding-top: 132px; }
   .site-header {
-    position: fixed;
-    top: 40px;
-    left: 24px;
-    right: 24px;
-    width: auto;
-    z-index: 200;
+    position: fixed !important;
+    top: 40px !important;
+    left: 24px !important;
+    right: 24px !important;
+    width: auto !important;
+    margin: 0 !important;
+    z-index: 1001 !important;
+    background: #fbfbf7 !important;
+    isolation: isolate;
   }
   .wrap { margin-top: 16px; }
 }
-/* When Chrome's titlebar overlay is active, place the navigation below it. */
-@media (display-mode: window-controls-overlay) and (min-width: 1024px) {
+/* Overlay mode exposes a titlebar area inside the page. Keep the
+   navigation just below that region, without overlapping window controls. */
+@media (min-width: 1024px) and (display-mode: window-controls-overlay) {
   body { padding-top: calc(env(titlebar-area-height, 32px) + 112px); }
-  .site-header { top: calc(env(titlebar-area-height, 32px) + 16px); }
+  .site-header { top: calc(env(titlebar-area-height, 32px) + 16px) !important; }
 }
