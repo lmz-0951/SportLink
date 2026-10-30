@@ -38,7 +38,11 @@
         <button data-page="substitutions">代課媒合</button>
         <button data-page="dashboard">我的中心</button>
       </div>
-      <button class="login" data-page="account">會員登入 <span aria-hidden="true">↗</span></button>
+      <button class="login" data-page="account">登入／註冊 <span aria-hidden="true">↗</span></button>
+      <details class="sl-member-account" hidden>
+        <summary class="sl-member-trigger" aria-label="開啟會員選單"><span class="sl-member-initial" aria-hidden="true">會</span><span class="sl-member-name">會員</span><span class="sl-member-chevron" aria-hidden="true">⌄</span></summary>
+        <div class="sl-member-popover"><div class="sl-member-popover-head"><strong class="sl-member-name">會員</strong><span class="sl-member-role">會員</span></div><button type="button" data-page="dashboard">▦　我的會員中心</button><button type="button" data-page="dashboard">◯　個人資料與課程</button><button type="button" class="sl-member-logout" data-action="logout">↪　登出帳號</button></div>
+      </details>
     </nav>
   </header>
   <main class="wrap" id="app"></main>

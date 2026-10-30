@@ -387,3 +387,56 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .sl-next-class{background:linear-gradient(125deg,#234838,#315e49 75%,#3e7257);border-radius:22px;padding:25px 27px;color:#fff;box-shadow:0 14px 32px #23483820;margin-bottom:20px;position:relative;overflow:hidden}
 .sl-next-class:after{content:"";position:absolute;width:230px;height:230px;border:1px solid #ffffff25;border-radius:50%;right:-65px;top:-100px;pointer-events:none}.sl-next-top{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;font-weight:800;color:#d6e7d7}.sl-next-mark{font-size:23px}.sl-next-class h2{color:#fff;font-size:clamp(21px,3vw,29px);margin:15px 0 8px}.sl-next-class p{color:#e5ede5;margin:0 0 17px}.sl-next-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;font-weight:700}.sl-next-footer .btn{background:#f6e9dc;color:#824b30;border:0}.sl-student-widgets{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;margin-bottom:26px}.sl-calendar-card,.sl-favorites-card{background:#fffefa;border:1px solid #e1e8df;border-radius:21px;padding:20px;min-width:0;box-shadow:0 8px 22px #24433408}.sl-widget-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}.sl-widget-title h3{font-size:19px;color:#294737;margin:5px 0 0}.sl-calendar-nav{display:flex;align-items:center;gap:8px;color:#345741;font-size:12px}.sl-calendar-nav button{border:1px solid #dbe5da;background:#eff4ec;border-radius:10px;width:32px;height:32px;font-size:22px;color:#31543f;cursor:pointer}.sl-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}.sl-calendar-weekday{text-align:center;color:#758678;font-size:11px;font-weight:800;padding:7px 0}.sl-calendar-day{min-height:39px;border:1px solid transparent;border-radius:10px;background:#f4f6f0;color:#365341;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;font-size:13px;cursor:pointer}.sl-calendar-day i{width:5px;height:5px;border-radius:50%;background:#c6794e}.sl-calendar-day.has-lesson{background:#e7efe6;border-color:#cbdcca;font-weight:800}.sl-calendar-day.selected{background:#28523d;color:white}.sl-calendar-day.selected i{background:#f9d5b4}.sl-calendar-day:focus-visible,.sl-calendar-nav button:focus-visible,.sl-fav-toggle:focus-visible{outline:3px solid #d28b5e;outline-offset:2px}.sl-calendar-detail{margin-top:14px;padding:12px;background:#f4f7f1;border-radius:12px;color:#526a58;font-size:12px;line-height:1.7}.sl-calendar-detail p{margin:3px 0}.sl-calendar-class{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:7px 0;border-top:1px solid #e0e8df}.sl-fav-count{font-size:12px;font-weight:800;color:#b36b46;background:#faede4;border-radius:999px;padding:6px 11px}.sl-fav-list{display:grid;gap:10px}.sl-fav-row{display:flex;align-items:center;gap:10px;border:1px solid #e5ebe2;background:#fff;border-radius:15px;padding:11px;flex-wrap:wrap}.sl-fav-row .avatar{width:46px!important;height:46px!important}.sl-fav-info{display:flex;flex:1;flex-direction:column;gap:4px;min-width:100px;color:#2c4938}.sl-fav-info small{color:#748278;font-size:11px}.sl-fav-actions{display:flex;gap:6px;flex-wrap:wrap}.sl-fav-actions .btn{padding:9px 11px;font-size:12px}.sl-fav-toggle{border:1px solid #edd8c8;background:#fff3eb;color:#b46b47;border-radius:11px;padding:10px 12px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.sl-fav-toggle.is-favorite{background:#c87851;color:white;border-color:#c87851}.sl-fav-empty{padding:23px 16px;border:1px dashed #dce7d9;background:#f6f8f3;border-radius:14px;color:#6b7c70;font-size:13px;line-height:1.8}.sl-fav-bottom{margin-top:14px}.sl-fav-bottom .btn{width:100%}.coach-card .row{flex-wrap:wrap;gap:8px}
 @media(max-width:850px){.sl-student-widgets{grid-template-columns:1fr}}@media(max-width:700px){.sl-next-class{padding:20px;border-radius:18px}.sl-calendar-card,.sl-favorites-card{padding:15px;border-radius:17px}.sl-calendar-grid{gap:3px}.sl-calendar-day{min-height:36px}.sl-widget-title h3{font-size:17px}.sl-fav-row{align-items:flex-start}.sl-fav-actions{width:100%;padding-left:56px}.sl-fav-actions .btn{flex:1}}
+
+/* SportLink v8 — shared member navigation & dashboard welcome */
+.nav .login[hidden],.sl-member-account[hidden]{display:none!important}
+.sl-member-account{position:relative;flex-shrink:0;z-index:65}
+.sl-member-account>summary{list-style:none;cursor:pointer}
+.sl-member-account>summary::-webkit-details-marker{display:none}
+.sl-member-trigger{display:flex;align-items:center;gap:9px;min-height:46px;padding:6px 12px 6px 7px;border-radius:28px;background:#254437;color:#fff;box-shadow:0 6px 18px #24463819;font-size:14px;font-weight:800;max-width:220px}
+.sl-member-trigger:hover{background:#315743}
+.sl-member-trigger:focus-visible{outline:3px solid #c77d55;outline-offset:3px}
+.sl-member-initial{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#e6efe6;color:#244638;font-weight:900}
+.sl-member-trigger .sl-member-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.sl-member-chevron{font-size:18px;opacity:.8}
+.sl-member-account[open] .sl-member-chevron{transform:rotate(180deg)}
+.sl-member-popover{position:absolute;right:0;top:calc(100% + 11px);width:248px;background:#fffefa;border:1px solid #e4e8df;border-radius:18px;padding:9px;box-shadow:0 18px 50px #1d35252e;z-index:90}
+.sl-member-popover-head{display:flex;flex-direction:column;gap:3px;padding:12px 13px 13px;border-bottom:1px solid #e8e9e2;margin-bottom:6px;color:#254437;overflow-wrap:anywhere}
+.sl-member-role{color:#79877d;font-size:12px}
+.nav .sl-member-popover button{display:block;width:100%;text-align:left;background:transparent;color:#2b4639;padding:13px 12px;border-radius:10px;font-size:14px;min-height:44px}
+.nav .sl-member-popover button:hover{background:#edf3eb}
+.nav .sl-member-popover .sl-member-logout{border-top:1px solid #e8e9e2;color:#ad5b3b;border-radius:0;margin-top:4px;padding-top:15px}
+.sl-welcome-card{background:linear-gradient(118deg,#203e32 0%,#315743 74%,#3b604a 100%);border:1px solid #355b49;border-radius:25px;color:#fff;padding:28px 32px 23px;margin:14px 0 24px;box-shadow:0 16px 36px #193e2b22;position:relative;overflow:hidden}
+.sl-welcome-card:after{content:'';position:absolute;right:-80px;top:-140px;width:330px;height:330px;border:1px solid #ffffff20;border-radius:50%;box-shadow:0 0 0 55px #ffffff05;pointer-events:none}
+.sl-welcome-content{display:flex;align-items:center;gap:20px;position:relative;z-index:1}
+.sl-welcome-avatar{width:68px;height:68px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:#55755e;border:2px solid #ffffff3b;font-size:27px;font-weight:900;color:#fff}
+.sl-welcome-eyebrow{font-size:11px;letter-spacing:1.8px;font-weight:800;color:#d1e6d5}
+.sl-welcome-copy h1{font-size:clamp(25px,3.3vw,36px);line-height:1.35;margin:7px 0 6px;color:#fff}
+.sl-welcome-copy p{margin:0;color:#dce8df;font-size:14px}
+.sl-welcome-dot{margin:0 5px;color:#d8ad89}
+.sl-welcome-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #ffffff2e;margin-top:24px;padding-top:17px;color:#f5e7d9;font-size:14px;position:relative;z-index:1}
+.sl-welcome-spark{font-size:22px;color:#eeb38b}
+.sl-dashboard-tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 25px}
+.sl-tools-label{font-size:13px;font-weight:800;color:#63776a}
+.sl-tools-actions{display:flex;flex-wrap:wrap;gap:8px}
+.sl-tools-actions .btn{padding:10px 16px;font-size:13px;min-height:42px}
+.sl-demo-details{border:1px solid #e4e7dd;border-radius:16px;background:#fffefa;margin:35px 0 12px;padding:16px 20px;color:#385345}
+.sl-demo-details summary{cursor:pointer;font-weight:750}
+.sl-demo-details p{font-size:13px;color:#78877c}
+@media(max-width:700px){
+ .nav .sl-member-account{order:1;margin-left:0}
+ .sl-member-trigger{max-width:min(46vw,180px);padding:5px 10px 5px 5px;min-height:44px;gap:6px;font-size:12px}
+ .sl-member-initial{width:31px;height:31px}
+ .sl-member-popover{width:min(265px,calc(100vw - 30px));right:0}
+ .sl-welcome-card{padding:22px 19px 18px;border-radius:20px;margin:8px 0 19px}
+ .sl-welcome-avatar{width:54px;height:54px;font-size:23px}
+ .sl-welcome-content{gap:12px}
+ .sl-welcome-eyebrow{font-size:9px;letter-spacing:1px}
+ .sl-welcome-copy h1{font-size:24px;overflow-wrap:anywhere}
+ .sl-welcome-copy p,.sl-welcome-footer{font-size:12px}
+ .sl-welcome-footer{margin-top:19px;padding-top:14px}
+ .sl-dashboard-tools{align-items:flex-start}
+ .sl-tools-label{width:100%}
+ .sl-tools-actions .btn{min-height:44px}
+}
+@media(max-width:370px){.sl-member-trigger .sl-member-name{max-width:65px}.sl-welcome-avatar{width:46px;height:46px}.sl-welcome-copy h1{font-size:21px}}

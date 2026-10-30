@@ -269,7 +269,32 @@ function availabilityPanel(){
  </form><div class="sl-block-list">${slots||'<p class="muted">目前沒有開放時段。</p>'}</div></section>`;
 }
 
+function slSyncMemberNav(){
+  const nav=document.querySelector('.nav');
+  const login=nav?.querySelector('.login');
+  const account=nav?.querySelector('.sl-member-account');
+  if(!nav||!login)return;
+  const loggedIn=!!user;
+  login.hidden=loggedIn;
+  login.setAttribute('aria-hidden',String(loggedIn));
+  if(account){
+    account.hidden=!loggedIn;
+    const names=account.querySelectorAll('.sl-member-name');
+    const initial=account.querySelector('.sl-member-initial');
+    names.forEach(name=>name.textContent=user?.name||'會員');
+    if(initial)initial.textContent=String(user?.name||'會').trim().slice(0,1)||'會';
+    const role=account.querySelector('.sl-member-role');
+    if(role)role.textContent=coachProfile?'教練':user?.role||'學生';
+    if(!loggedIn){account.open=false;}
+  }
+}
+function slWelcomeCard(){
+  const coach=!!coachProfile;
+  const role=coach?'教練會員':admin?'平台管理員':'學生會員';
+  return `<section class="sl-welcome-card" aria-label="會員歡迎資訊"><div class="sl-welcome-content"><div class="sl-welcome-avatar" aria-hidden="true">${esc(String(user.name||'會').slice(0,1))}</div><div class="sl-welcome-copy"><span class="sl-welcome-eyebrow">WELCOME BACK · 歡迎回來</span><h1>你好，${esc(user.name)} <span aria-hidden="true">👋</span></h1><p>${esc(role)} <span class="sl-welcome-dot">·</span> SportLink</p></div></div><div class="sl-welcome-footer"><span>${coach?'管理教學時段，陪伴更多學生前進。':'你的運動旅程，從這裡開始。'}</span><span class="sl-welcome-spark" aria-hidden="true">✦</span></div></section>`;
+}
 function render(){
+  slSyncMemberNav();
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
    if(page==='home')app.innerHTML=`<section class="hero"><div class="hero-copy"><span class="hero-eyebrow"><span class="live-dot"></span> SPORTLINK · 雙北與桃園</span><h1>找到對的教練，<br><em>突破每一個可能。</em></h1><p>從第一堂課到下一個里程碑，探索專業運動教練，找到適合你的訓練方式。</p><div class="hero-actions">${btn('探索專業教練 ↗','go:coaches')}${btn('了解代課機會','go:substitutions','btn ghost')}</div><div class="hero-trust"><span>✦ 真實教練資料</span><span>✦ 彈性預約時段</span><span>✦ 學員真實評價</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><img class="hero-athlete" src="./athlete.svg" alt="" loading="eager" decoding="async"><div class="hero-spark spark-one">✦</div><div class="hero-spark spark-two">✧</div><div class="floating-note note-one">✦ MOVE BETTER</div><div class="floating-note note-two">YOUR NEXT LEVEL ↗</div></div></section><section class="section intro-section"><div class="section-heading"><div><span class="eyebrow">WHAT WE DO</span><h2>每一步進步，都有專業陪伴。</h2></div><p class="muted">讓尋找教練、管理課程與運動專業媒合變得更簡單。</p></div><div class="grid features"><div class="card feature-card feature-find"><div class="feature-icon">◎</div><h3>找到適合你的教練</h3><p>依運動項目與授課地區探索教練，查看資歷、評價與課程價格。</p>${btn('探索教練 ↗','go:coaches','btn secondary')}</div><div class="card feature-card feature-plan"><div class="feature-icon">▦</div><h3>輕鬆安排訓練</h3><p>直接選擇教練開放的時段，管理預約與課程紀錄。</p>${btn('我的課程 ↗','go:dashboard','btn secondary')}</div><div class="card feature-card feature-connect"><div class="feature-icon">↗</div><h3>串聯運動專業</h3><p>為運動教練打造展示專長、管理課程與探索代課機會的平台。</p>${btn('代課機會 ↗','go:substitutions','btn secondary')}</div></div></section><section class="section sl-how-section" aria-labelledby="slHowTitle"><div class="section-heading"><div><span class="eyebrow">HOW IT WORKS</span><h2 id="slHowTitle">找到教練，三步就開始。</h2></div><p class="muted">從搜尋到預約，讓每次訓練更有方向。</p></div><div class="sl-how-grid"><div class="sl-how-step"><span class="sl-step-number">01</span><h3>探索專業教練</h3><p>依照運動項目與地區，找到符合需求的教練。</p></div><div class="sl-how-step"><span class="sl-step-number">02</span><h3>查看介紹與時段</h3><p>了解教學經歷、課程價格及可預約時間。</p></div><div class="sl-how-step"><span class="sl-step-number">03</span><h3>送出課程預約</h3><p>登入後提出預約，等待教練確認。</p></div></div></section><section class="section featured-section"><div class="section-heading"><div><span class="eyebrow">EXPLORE COACHES</span><h2>探索專業教練</h2></div>${btn('查看全部教練 ↗','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')||'<div class="empty">教練即將登場，歡迎稍後再來探索。</div>'}</div></section><section class="closing-banner"><div><span class="eyebrow">START YOUR JOURNEY</span><h2>下一次突破，從這裡開始。</h2><p>找到適合你的運動節奏，讓專業教練陪你前進。</p></div>${btn('立即尋找教練 ↗','go:coaches','btn ghost')}</section>`;
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
@@ -361,7 +386,7 @@ function render(){
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div>${coachProfile?`${availabilityPanel()}${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history','coach')}${coachEditPanel()}${slStudentDashboard(mine)}`:slStudentDashboard(mine)}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.innerHTML=`${slWelcomeCard()}<div class="sl-dashboard-tools"><span class="sl-tools-label">會員快捷操作</span><div class="sl-tools-actions">${btn('↻ 更新課程','reload','btn secondary')}${admin?btn('平台管理後台','go:admin','btn secondary'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}</div></div>${coachProfile?`${availabilityPanel()}${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history','coach')}${coachEditPanel()}${slStudentDashboard(mine)}`:slStudentDashboard(mine)}<details class="sl-demo-details"><summary>代課媒合（示範功能）</summary><p>代課媒合仍是本機示範，尚未雲端同步。</p>${btn('查看代課示範','go:substitutions','btn secondary')}</details>`;
     slSetupStudentCalendar(mine);
     app.querySelectorAll('.sl-board-filters').forEach(group=>group.addEventListener('click',e=>{
       const button=e.target.closest('[data-board-filter]');if(!button)return;
@@ -516,8 +541,10 @@ if(slMenuToggle&&slMenu){
   window.addEventListener('resize',()=>{if(window.innerWidth>700)closeSlMobileMenu()});
 }
 document.addEventListener('click',async e=>{
+  const accountMenu=document.querySelector('.sl-member-account');
+  if(accountMenu?.open&&!accountMenu.contains(e.target))accountMenu.open=false;
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.page){closeSlMobileMenu();page=b.dataset.page;render();window.scrollTo(0,0);return}
+  if(b.dataset.page){document.querySelector('.sl-member-account')?.removeAttribute('open');closeSlMobileMenu();page=b.dataset.page==='account'&&user?'dashboard':b.dataset.page;render();window.scrollTo(0,0);return}
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
   if(cmd==='favorite'){
     if(!user){alert('請先登入才能收藏教練');page='account';render();return}
@@ -559,7 +586,7 @@ document.addEventListener('click',async e=>{
   if(cmd==='toggle-password'){const input=app.querySelector('#accountPassword');if(input){const showing=input.type==='password';input.type=showing?'text':'password';b.textContent=showing?'隱藏':'顯示';b.setAttribute('aria-label',showing?'隱藏密碼':'顯示密碼');b.setAttribute('aria-pressed',String(showing))}return}
   if(cmd==='forgot-password'){const email=String(app.querySelector('#accountForm input[name=email]')?.value||'').trim();const message=app.querySelector('#authMessage');if(!message)return;if(!email||!app.querySelector('#accountForm input[name=email]').checkValidity()){message.textContent='請先輸入有效的電子郵件，再點選忘記密碼。';return}b.disabled=true;message.textContent='正在寄送重設密碼信…';try{const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/?auth=recovery'});if(error)throw error;message.textContent='如果此信箱有註冊帳號，請查看信箱中的密碼重設連結（也請檢查垃圾郵件）。'}catch(err){message.textContent='寄送失敗：'+errorText(err)}finally{b.disabled=false}return}
   if(cmd==='toggle-signup'){const fields=app.querySelector('#signupFields');if(fields){fields.hidden=!fields.hidden;app.querySelector('#authSubmit').textContent=fields.hidden?'登入 SportLink':'建立帳號';b.textContent=fields.hidden?'立即註冊':'返回登入';app.querySelector('#authSwitchPrompt').textContent=fields.hidden?'還沒有帳號嗎？':'已經有帳號了？';app.querySelector('input[name=password]').autocomplete=fields.hidden?'current-password':'new-password';app.querySelector('#forgotPasswordButton').hidden=!fields.hidden}return}
-  if(cmd==='logout'){const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}user=null;admin=false;coachProfile=null;bookings=[];page='home';await reload();return}
+  if(cmd==='logout'){document.querySelector('.sl-member-account')?.removeAttribute('open');const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}user=null;admin=false;coachProfile=null;bookings=[];page='home';await reload();return}
   if(cmd==='apply'){if(!user){page='account';render();return}const j=jobs.find(x=>x.id===+id);if(!j)return;if(j.owner===user.name){alert('不能申請自己的代課需求');return}if(applications.some(x=>x.jobId===j.id&&x.applicant===user.name)){alert('已申請過');return}applications.push({id:Date.now(),jobId:j.id,applicant:user.name,sport:j.sport,date:j.date,status:'待確認'});save('applications',applications);alert('已建立本機示範申請，不會通知教練');page='dashboard';render()}
 });
 document.addEventListener('change',e=>{
@@ -610,6 +637,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
     const previousId=user?.id;
     const meta=next.user_metadata||{};
     user={id:next.id,name:String(meta.display_name||next.email?.split('@')[0]||'會員'),role:meta.role==='coach'?'教練':'學生'};
+    slSyncMemberNav();
     if(previousId!==next.id){
       const version=++authVersion;
       setTimeout(()=>{if(version===authVersion)reload()},0);
