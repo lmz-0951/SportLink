@@ -26,6 +26,9 @@ let availabilitySlots=[],availabilityError='',coachReviews=[],myReviews=[];
 let publicOpenBlocks=[],publicBusyBlocks=[],bookingUiVersion=0;
 let favoriteCoachIds=new Set(),favoritesReady=false;
 const app=document.getElementById('app');
+document.querySelectorAll('[data-page="community"]').forEach(el=>{
+  if(!el.querySelector('[data-sl-notice]'))el.insertAdjacentHTML('beforeend','<span class="sl-notice-slot" data-sl-notice="community" hidden></span>');
+});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(name,action,cls='btn')=>`<button type="button" class="${cls}" data-action="${action}">${name}</button>`;
 const options=(arr,current)=>arr.map(v=>`<option ${v===current?'selected':''}>${esc(v)}</option>`).join('');
@@ -304,7 +307,7 @@ async function slSocialLoad(){
   slSocialLoading=true;slSocialError='';
   try{const {data,error}=await supabaseClient.rpc('sportlink_social_connections');if(error)throw error;slSocialRows=data||[]}
   catch(e){slSocialError='好友資料尚未啟用或讀取失敗：'+errorText(e)}
-  finally{slSocialLoading=false;if(page==='community'){if(slChatPeer&&!slChatFriends().some(x=>x.id===slChatPeer)){slChatPeer=null;slChatStop();slChatMessages=[]}render()}}
+  finally{slSocialLoading=false;slNoticeRefresh();if(page==='community'){if(slChatPeer&&!slChatFriends().some(x=>x.id===slChatPeer)){slChatPeer=null;slChatStop();slChatMessages=[]}render()}}
 }
 async function slSocialSearch(){
   const q=slSocialQuery.trim();if(!user||q.length<2){slSocialSearchRows=[];render();return}
@@ -315,6 +318,61 @@ async function slSocialSearch(){
 }
 
 // 私訊：只有雙方已互加好友才允許讀取或傳送，資料庫 RLS 會再驗證一次。
+
+// 社群提醒：收到的待處理好友邀請與尚未閱讀的私人訊息。
+let slNoticeRequests=0,slNoticeMessages=0,slNoticeByPeer={},slNoticeUserId=null;
+let slNoticeTimer=null,slNoticeChannel=null,slNoticeSeq=0;
+const slNoticeCount=n=>n>99?'99+':String(n);
+const slNoticeBadge=(n,extra='')=>n>0?`<span class="sl-notice-badge ${extra}" aria-label="${n} 則未處理提醒">${slNoticeCount(n)}</span>`:'';
+function slNoticePaint(){
+  const counts={requests:slNoticeRequests,messages:slNoticeMessages,community:slNoticeRequests+slNoticeMessages};
+  document.querySelectorAll('[data-sl-notice]').forEach(el=>{
+    const kind=el.dataset.slNotice;
+    const count=kind==='peer'?Number(slNoticeByPeer[el.dataset.peer]||0):Number(counts[kind]||0);
+    el.innerHTML=slNoticeBadge(count);
+    el.hidden=count===0;
+  });
+}
+function slNoticeReset(){
+  slNoticeSeq++;
+  if(slNoticeTimer){clearInterval(slNoticeTimer);slNoticeTimer=null}
+  if(slNoticeChannel){supabaseClient.removeChannel(slNoticeChannel);slNoticeChannel=null}
+  slNoticeUserId=null;slNoticeRequests=0;slNoticeMessages=0;slNoticeByPeer={};
+  slNoticePaint();
+}
+async function slNoticeRefresh(){
+  if(!user||!slNoticeUserId||user.id!==slNoticeUserId)return;
+  const current=user.id,seq=++slNoticeSeq;
+  try{
+    const [requests,messages]=await Promise.all([
+      supabaseClient.rpc('sportlink_social_connections'),
+      supabaseClient.from('sportlink_chat_messages').select('sender_id')
+        .eq('recipient_id',current).is('read_at',null)
+    ]);
+    if(requests.error)throw requests.error;
+    if(messages.error)throw messages.error;
+    if(seq!==slNoticeSeq||!user||user.id!==current)return;
+    slNoticeRequests=(requests.data||[]).filter(x=>x.relation==='received').length;
+    const byPeer={};
+    for(const m of messages.data||[])byPeer[m.sender_id]=(byPeer[m.sender_id]||0)+1;
+    slNoticeByPeer=byPeer;
+    slNoticeMessages=(messages.data||[]).length;
+    slNoticePaint();
+  }catch(e){console.warn('SportLink notifications:',e?.message||e)}
+}
+function slNoticeStart(){
+  if(!user)return;
+  if(slNoticeUserId===user.id)return;
+  slNoticeReset();
+  slNoticeUserId=user.id;
+  slNoticeRefresh();
+  slNoticeTimer=setInterval(()=>{if(!document.hidden)slNoticeRefresh()},8000);
+  slNoticeChannel=supabaseClient.channel('sportlink-notices-'+user.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'sportlink_chat_messages'},()=>slNoticeRefresh())
+    .subscribe();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)slNoticeRefresh()});
+
 let slChatPeer=null,slChatMessages=[],slChatError='',slChatLoading=false,slChatBusy=false;
 let slChatChannel=null,slChatTimer=null,slChatRequest=0;
 function slChatStop(){
@@ -325,7 +383,7 @@ function slChatFriends(){return slSocialRows.filter(x=>x.relation==='accepted')}
 function slChatPanel(){
   if(!user)return '<p>請先登入，才能使用好友私訊。</p>';
   const friends=slChatFriends(),peer=friends.find(x=>x.id===slChatPeer);
-  const list=friends.map(x=>`<button type="button" class="sl-chat-person ${x.id===slChatPeer?'active':''}" data-action="chat-open:${esc(x.id)}"><span class="sl-chat-avatar">${esc(x.display_name.slice(0,1))}</span><span>${esc(x.display_name)}</span></button>`).join('');
+  const list=friends.map(x=>`<button type="button" class="sl-chat-person ${x.id===slChatPeer?'active':''}" data-action="chat-open:${esc(x.id)}"><span class="sl-chat-avatar">${esc(x.display_name.slice(0,1))}</span><span class="sl-chat-person-name">${esc(x.display_name)}</span><span class="sl-notice-slot" data-sl-notice="peer" data-peer="${esc(x.id)}" ${slNoticeByPeer[x.id]?'':'hidden'}>${slNoticeBadge(slNoticeByPeer[x.id]||0)}</span></button>`).join('');
   return `<span class="eyebrow">DIRECT MESSAGES</span><h2>好友私人訊息</h2><p class="sl-chat-help">只有互為好友的會員能傳訊息。離開頁面後，聊天紀錄仍會保存。</p>
     <div class="sl-chat-layout"><aside class="sl-chat-contacts"><strong>我的好友</strong>${list||'<p class="muted">還沒有好友，先到「尋找好友」認識夥伴吧。</p>'}</aside>
     <div class="sl-chat-main">${peer?`<div class="sl-chat-heading"><strong>${esc(peer.display_name)}</strong><span>私人對話</span></div>
@@ -355,7 +413,7 @@ async function slChatLoad(silent=false){
       if(area&&atBottom)area.scrollTop=area.scrollHeight;
     }
     if(next.some(m=>m.recipient_id===user.id&&!m.read_at)){
-      supabaseClient.rpc('sportlink_chat_mark_read',{p_peer:peer}).then(({error})=>{if(error)console.warn('read receipt:',error.message)});
+      supabaseClient.rpc('sportlink_chat_mark_read',{p_peer:peer}).then(({error})=>{if(error)console.warn('read receipt:',error.message);else slNoticeRefresh()});
     }
   }catch(e){if(request===slChatRequest){slChatLoading=false;slChatError='訊息讀取失敗：'+errorText(e);render()}}
 }
@@ -371,7 +429,7 @@ function slChatStart(){
 
 function slCommunityView(){
   const sections=[['discover','尋找好友'],['friends','我的好友'],['requests','好友邀請'],['messages','私人訊息'],['forum','運動討論區']];
-  const nav=sections.map(([key,label])=>`<button type="button" class="sl-social-tab ${slCommunityTab===key?'is-active':''}" data-action="social-tab:${key}" aria-pressed="${slCommunityTab===key}">${label}</button>`).join('');
+  const nav=sections.map(([key,label])=>`<button type="button" class="sl-social-tab ${slCommunityTab===key?'is-active':''}" data-action="social-tab:${key}" aria-pressed="${slCommunityTab===key}"><span>${label}</span>${key==='requests'||key==='messages'?`<span class="sl-notice-slot" data-sl-notice="${key}" ${((key==='requests'?slNoticeRequests:slNoticeMessages)>0)?'':'hidden'}>${slNoticeBadge(key==='requests'?slNoticeRequests:slNoticeMessages)}</span>`:''}</button>`).join('');
   let content='';
   if(slCommunityTab==='discover')content=`<span class="eyebrow">FIND YOUR PEOPLE</span><h2>尋找運動夥伴</h2><p>輸入至少兩個字搜尋會員公開暱稱，學生與教練都可以互加好友。</p>${user?`<form id="slSocialSearchForm" class="sl-social-search-form"><input class="sl-social-search" name="q" maxlength="60" placeholder="輸入會員暱稱（至少兩字）" value="${esc(slSocialQuery)}" required minlength="2"><button class="btn" type="submit">搜尋</button></form>${slSocialList(slSocialSearchRows,slSocialQuery?'沒有找到符合條件的會員。':'搜尋結果會顯示在這裡。')}`:'<p>登入後即可搜尋會員。</p>'}`;
   if(slCommunityTab==='friends')content=`<span class="eyebrow">MY CONNECTIONS</span><h2>我的運動好友</h2>${slSocialList(slSocialRows.filter(x=>x.relation==='accepted'),'目前還沒有好友，先去尋找運動夥伴吧！')}`;
@@ -384,7 +442,7 @@ function slCommunityView(){
 function render(){
   slSyncMemberNav();
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-   if(page==='community')app.innerHTML=slCommunityView();
+   if(page==='community'){app.innerHTML=slCommunityView();slNoticePaint()}
    else if(page==='home')app.innerHTML=`
 <section class="hero sl-home-hero"><div class="hero-copy"><span class="hero-eyebrow"><span class="live-dot"></span> SPORTLINK · FIND YOUR COACH</span><h1>找到對的教練，<br><em>突破每一個可能。</em></h1><p>從尋找教練到安排課程，讓運動變得更簡單。找到適合你的節奏，踏出下一步。</p><div class="hero-actions">${btn('探索專業教練 ↗','go:coaches')}${btn('成為 SportLink 教練 ↗',user?'go:coach-apply':'go:account','btn ghost')}</div><div class="hero-trust"><span>✦ 依地區尋找</span><span>✦ 彈性選擇時段</span><span>✦ 查看教練介紹與評價</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><img class="hero-athlete" src="./athlete.svg" alt="" loading="eager" decoding="async"><div class="hero-spark spark-one">✦</div><div class="hero-spark spark-two">✧</div><div class="floating-note note-one">✦ MOVE BETTER</div><div class="floating-note note-two">YOUR NEXT LEVEL ↗</div></div></section>
 <section class="section sl-home-search" aria-labelledby="slHomeSearchTitle"><div class="sl-home-search-copy"><span class="eyebrow">FIND YOUR COACH</span><h2 id="slHomeSearchTitle">從喜歡的運動開始。</h2><p class="muted">選擇運動項目與授課地區，快速探索適合你的教練。</p></div><form id="slHomeSearchForm" class="sl-home-search-form"><label>運動項目<select id="slHomeSport" name="sport">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select></label><label>授課地區<select id="slHomeArea" name="area">${areaOptions(areaFilter,true)}</select></label><button type="submit" class="btn sl-home-search-button">搜尋教練 ↗</button></form></section>
@@ -650,7 +708,7 @@ document.addEventListener('click',async e=>{
     const action=cmd==='social-block'?'block':id,target=cmd==='social-block'?id:extra;
     if(!['send','accept','reject','cancel','remove','block'].includes(action)||!target)return;
     b.disabled=true;
-    try{const {data,error}=await supabaseClient.rpc('sportlink_social_action',{p_target:target,p_action:action});if(error)throw error;if(!data)throw Error('邀請狀態已改變，請重新整理');slSocialProfile=null;await slSocialLoad();if(slSocialQuery.trim().length>=2)await slSocialSearch();}
+    try{const {data,error}=await supabaseClient.rpc('sportlink_social_action',{p_target:target,p_action:action});if(error)throw error;if(!data)throw Error('邀請狀態已改變，請重新整理');slSocialProfile=null;await slSocialLoad();slNoticeRefresh();if(slSocialQuery.trim().length>=2)await slSocialSearch();}
     catch(err){alert('操作失敗：'+errorText(err));b.disabled=false}return;
   }
   if(cmd==='favorite'){
@@ -693,7 +751,7 @@ document.addEventListener('click',async e=>{
   if(cmd==='toggle-password'){const input=app.querySelector('#accountPassword');if(input){const showing=input.type==='password';input.type=showing?'text':'password';b.textContent=showing?'隱藏':'顯示';b.setAttribute('aria-label',showing?'隱藏密碼':'顯示密碼');b.setAttribute('aria-pressed',String(showing))}return}
   if(cmd==='forgot-password'){const email=String(app.querySelector('#accountForm input[name=email]')?.value||'').trim();const message=app.querySelector('#authMessage');if(!message)return;if(!email||!app.querySelector('#accountForm input[name=email]').checkValidity()){message.textContent='請先輸入有效的電子郵件，再點選忘記密碼。';return}b.disabled=true;message.textContent='正在寄送重設密碼信…';try{const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/?auth=recovery'});if(error)throw error;message.textContent='如果此信箱有註冊帳號，請查看信箱中的密碼重設連結（也請檢查垃圾郵件）。'}catch(err){message.textContent='寄送失敗：'+errorText(err)}finally{b.disabled=false}return}
   if(cmd==='toggle-signup'){const fields=app.querySelector('#signupFields');if(fields){fields.hidden=!fields.hidden;app.querySelector('#authSubmit').textContent=fields.hidden?'登入 SportLink':'建立帳號';b.textContent=fields.hidden?'立即註冊':'返回登入';app.querySelector('#authSwitchPrompt').textContent=fields.hidden?'還沒有帳號嗎？':'已經有帳號了？';app.querySelector('input[name=password]').autocomplete=fields.hidden?'current-password':'new-password';app.querySelector('#forgotPasswordButton').hidden=!fields.hidden}return}
-  if(cmd==='logout'){slChatStop();document.querySelector('.sl-member-account')?.removeAttribute('open');const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}user=null;admin=false;coachProfile=null;bookings=[];page='home';await reload();return}
+  if(cmd==='logout'){slChatStop();slNoticeReset();document.querySelector('.sl-member-account')?.removeAttribute('open');const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}user=null;admin=false;coachProfile=null;bookings=[];page='home';await reload();return}
   if(cmd==='apply'){if(!user){page='account';render();return}const j=jobs.find(x=>x.id===+id);if(!j)return;if(j.owner===user.name){alert('不能申請自己的代課需求');return}if(applications.some(x=>x.jobId===j.id&&x.applicant===user.name)){alert('已申請過');return}applications.push({id:Date.now(),jobId:j.id,applicant:user.name,sport:j.sport,date:j.date,status:'待確認'});save('applications',applications);alert('已建立本機示範申請，不會通知教練');page='dashboard';render()}
 });
 document.addEventListener('change',e=>{
@@ -735,7 +793,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
   }
   if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;
   if(event==='SIGNED_OUT'){
-    slChatStop();slChatPeer=null;slChatMessages=[];
+    slChatStop();slNoticeReset();slChatPeer=null;slChatMessages=[];
     authVersion++;
     user=null;admin=false;coachProfile=null;bookings=[];render();
     return;
@@ -746,7 +804,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
     const previousId=user?.id;
     const meta=next.user_metadata||{};
     user={id:next.id,name:String(meta.display_name||next.email?.split('@')[0]||'會員'),role:meta.role==='coach'?'教練':'學生'};
-    slSyncMemberNav();
+    slSyncMemberNav();slNoticeStart();
     if(previousId!==next.id){
       const version=++authVersion;
       setTimeout(()=>{if(version===authVersion)reload()},0);
@@ -757,7 +815,7 @@ window.addEventListener('online',()=>{showConnectionNotice('網路已恢復，�
 window.addEventListener('offline',()=>showConnectionNotice('目前沒有網路連線；登入及預約需要連線。'));
 render();
 refreshAuthUser().then(async()=>{
-  await reload();
+  await reload();slNoticeStart();
   if(new URLSearchParams(location.search).get('auth')==='recovery')await handlePasswordRecovery();
 }).catch(e=>{console.error('SportLink auth startup:',e);showConnectionNotice('登入狀態讀取失敗：'+errorText(e))});
 
@@ -775,7 +833,7 @@ document.addEventListener('submit',async e=>{
   try{
     const {error}=await supabaseClient.rpc('sportlink_chat_send',{p_recipient:peer,p_body:body});
     if(error)throw error;
-    form.reset();await slChatLoad(true);
+    form.reset();await slChatLoad(true);slNoticeRefresh();
   }catch(err){slChatError='傳送失敗：'+errorText(err);render()}
   finally{slChatBusy=false;const current=document.querySelector('#slChatForm button[type=submit]');if(current)current.disabled=false}
 });
