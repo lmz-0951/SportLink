@@ -308,3 +308,21 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
   .nav .sl-mobile-menu-toggle{font-size:12px;padding:9px}
   .filters{grid-template-columns:1fr}
 }
+
+/* Dashboard: collapsed historical bookings with date lookup */
+.sl-booking-section{margin-bottom:28px}
+.sl-history{margin-top:16px;background:#fffefa;border:1px solid #e4e2d8;border-radius:18px;overflow:hidden}
+.sl-history>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;list-style:none;padding:17px 20px;color:#263d33;font-weight:800}
+.sl-history>summary::-webkit-details-marker,.sl-history-record>summary::-webkit-details-marker{display:none}
+.sl-history>summary:before{content:'▸';color:#c16c45;margin-right:6px}
+.sl-history[open]>summary:before{content:'▾'}
+.sl-history-count{font-size:12px;color:#718078;font-weight:600;margin-left:auto}
+.sl-history-inner{border-top:1px solid #eae6dd;padding:20px}
+.sl-history-label{display:block;color:#263d33;font-weight:700;margin-bottom:9px}
+.sl-history-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.sl-history-date{max-width:240px;min-height:44px}
+.sl-history-record{border:1px solid #eae6dd;border-radius:12px;margin-top:10px;overflow:hidden}
+.sl-history-record>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px;color:#263d33;flex-wrap:wrap}
+.sl-history-record[open]>summary{border-bottom:1px solid #eae6dd}
+.sl-history-record-body .item{border:0;box-shadow:none;margin:0}
+@media(max-width:700px){.sl-history-inner{padding:15px}.sl-history-controls{display:grid;grid-template-columns:1fr}.sl-history-date{max-width:none;width:100%}.sl-history-record>summary{align-items:flex-start}.sl-history>summary{padding:15px}}

@@ -125,6 +125,17 @@ function bookingCard(b){
   const cancelInfo=isStudent&&['pending','accepted'].includes(b.status)&&!canCancel?'<p class="muted small">距離上課不足 24 小時，無法自行取消，請聯絡教練。</p>':'';
   return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${canComplete?btn('標記課程完成','booking-complete:'+b.id,'btn secondary'):''}${canReview?btn('評價教練（自願）','review:'+b.id,'btn secondary'):''}${reviewed?'<p class="muted small">已提交評價，無法修改或刪除。</p>':''}${cancelInfo}</div>`;
 }
+// Archive completed/cancelled/rejected bookings without deleting any records.
+const slArchivedStatuses=new Set(['completed','cancelled','rejected']);
+function slBookingSection(title,items,emptyText,archiveId){
+  const current=items.filter(b=>!slArchivedStatuses.has(b.status));
+  const history=items.filter(b=>slArchivedStatuses.has(b.status));
+  return `<section class="section sl-booking-section"><h2>${title}</h2><div class="list">${current.map(bookingCard).join('')||`<div class="item muted">${emptyText}</div>`}</div><details class="sl-history" id="${archiveId}"><summary>歷史預約紀錄 <span class="sl-history-count">${history.length} 筆</span></summary><div class="sl-history-inner"><label class="sl-history-label" for="${archiveId}-date">依上課日期查詢</label><div class="sl-history-controls"><input id="${archiveId}-date" type="date" class="field sl-history-date" data-history-date="${archiveId}"><button type="button" class="btn secondary" data-history-clear="${archiveId}">清除日期</button></div><p class="muted small">依課程日期篩選；點開紀錄可查看預約詳情。</p><div class="sl-history-results" id="${archiveId}-results">${slHistoryCards(history,'')}</div></div></details></section>`;
+}
+function slHistoryCards(history,date){
+  const found=history.filter(b=>!date||b.lesson_date===date);
+  return found.length?found.map(b=>`<details class="sl-history-record"><summary><span><strong>${esc(b.lesson_date)} ${esc(String(b.lesson_time).slice(0,5))}</strong>　${esc(b.coaches?.sport||'課程')} · ${esc(b.coaches?.display_name||'教練')}</span><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></summary><div class="sl-history-record-body">${bookingCard(b)}</div></details>`).join(''):'<div class="item muted">這個日期沒有歷史預約紀錄。</div>';
+}
 function coachEditPanel(){
   if(!coachProfile)return '';
   const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
@@ -247,7 +258,7 @@ function render(){
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div><div class="section"><h2>我提出的預約</h2><div class="list">${mine.map(bookingCard).join('')||'<div class="item muted">目前沒有預約。</div>'}</div></div>${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p><h2>學生預約我的課程</h2><div class="list">${received.map(bookingCard).join('')||'<div class="item muted">目前沒有學生預約。</div>'}</div></div>${coachEditPanel()}${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div>${slBookingSection('我提出的預約',mine,'目前沒有進行中的預約。','sl-my-history')}${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p>${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history')}</div>${coachEditPanel()}${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
     const coachPhotoForm=app.querySelector('#coachPhotoForm');
     if(coachPhotoForm)coachPhotoForm.onsubmit=async e=>{
       e.preventDefault();
@@ -426,6 +437,19 @@ document.addEventListener('click',async e=>{
   if(cmd==='toggle-signup'){const fields=app.querySelector('#signupFields');if(fields){fields.hidden=!fields.hidden;app.querySelector('#authSubmit').textContent=fields.hidden?'登入 SportLink':'建立帳號';b.textContent=fields.hidden?'立即註冊':'返回登入';app.querySelector('#authSwitchPrompt').textContent=fields.hidden?'還沒有帳號嗎？':'已經有帳號了？';app.querySelector('input[name=password]').autocomplete=fields.hidden?'current-password':'new-password';app.querySelector('#forgotPasswordButton').hidden=!fields.hidden}return}
   if(cmd==='logout'){const {error}=await supabaseClient.auth.signOut();if(error){alert(error.message);return}user=null;admin=false;coachProfile=null;bookings=[];page='home';await reload();return}
   if(cmd==='apply'){if(!user){page='account';render();return}const j=jobs.find(x=>x.id===+id);if(!j)return;if(j.owner===user.name){alert('不能申請自己的代課需求');return}if(applications.some(x=>x.jobId===j.id&&x.applicant===user.name)){alert('已申請過');return}applications.push({id:Date.now(),jobId:j.id,applicant:user.name,sport:j.sport,date:j.date,status:'待確認'});save('applications',applications);alert('已建立本機示範申請，不會通知教練');page='dashboard';render()}
+});
+document.addEventListener('change',e=>{
+  const id=e.target?.dataset?.historyDate;
+  if(!id||page!=='dashboard')return;
+  const source=id==='sl-coach-history'?bookings.filter(b=>b.coach_id===coachProfile?.id):bookings.filter(b=>b.student_id===user?.id);
+  const target=document.getElementById(id+'-results');
+  if(target)target.innerHTML=slHistoryCards(source.filter(b=>slArchivedStatuses.has(b.status)),e.target.value);
+});
+document.addEventListener('click',e=>{
+  const button=e.target.closest('button[data-history-clear]');
+  if(!button||page!=='dashboard')return;
+  const id=button.dataset.historyClear,field=document.getElementById(id+'-date');
+  if(field){field.value='';field.dispatchEvent(new Event('change',{bubbles:true}))}
 });
 document.addEventListener('change',e=>{if(e.target.id==='sportFilter'){sportFilter=e.target.value;render()}if(e.target.id==='areaFilter'){areaFilter=e.target.value;render()}});
 async function refreshAuthUser(){
