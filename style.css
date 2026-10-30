@@ -234,3 +234,42 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
   body { padding-top: calc(env(titlebar-area-height, 32px) + 112px); }
   .site-header { top: calc(env(titlebar-area-height, 32px) + 16px) !important; }
 }
+
+/* Login experience enhancements */
+.sl-password-field{display:flex;align-items:stretch;gap:8px;width:100%}
+.sl-password-field input{flex:1;min-width:0}
+.sl-password-toggle{flex-shrink:0;border:1px solid #d6e1f0;border-radius:10px;padding:0 15px;background:#eef4ff;color:#214c8e;font-weight:700;cursor:pointer}
+.sl-password-toggle:focus-visible,.sl-text-button:focus-visible{outline:3px solid #3568ed;outline-offset:2px}
+.sl-text-button{align-self:flex-start;border:0;background:transparent;color:#2457d8;text-decoration:underline;cursor:pointer;padding:8px 0;font:inherit}
+.sl-text-button[hidden]{display:none}
+
+/* SportLink member login refresh — scoped to account page only */
+.sl-auth-wrap{max-width:520px;margin:40px auto 76px;padding:0 12px}
+.sl-auth-card{background:#fffefa;border:1px solid #e7e5dc;border-radius:22px;padding:38px 38px 32px;box-shadow:0 16px 48px rgba(38,61,51,.065)}
+.sl-auth-intro{margin-bottom:27px}
+.sl-auth-eyebrow{display:block;color:#bf6a42;font-size:11px;font-weight:850;letter-spacing:.16em;margin-bottom:10px}
+.sl-auth-intro h1{font-size:clamp(25px,3vw,31px);letter-spacing:-.035em;line-height:1.35;color:#263d33;margin:0 0 9px}
+.sl-auth-intro p{font-size:14px;color:#7b877e;margin:0;line-height:1.7}
+.sl-auth-form{gap:16px}
+.sl-auth-form label{display:block;color:#263d33;font-weight:750;font-size:13px}
+.sl-auth-form input,.sl-auth-form select{display:block;width:100%;min-height:49px;background:#faf9f5;border:1px solid #e2e3da;border-radius:12px;padding:12px 14px;color:#263d33;font-size:15px;margin-top:8px}
+.sl-auth-form input:focus,.sl-auth-form select:focus{outline:0;border-color:#8b9e8f;box-shadow:0 0 0 3px rgba(38,61,51,.09)}
+.sl-auth-form input::placeholder{color:#a4ada4}
+.sl-auth-form .sl-password-field{display:flex;position:relative;align-items:center;width:100%;margin-top:8px;gap:0}
+.sl-auth-form .sl-password-field input{margin-top:0;padding-right:76px;min-width:0}
+.sl-auth-form .sl-password-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:#607468;font-size:13px;font-weight:750;padding:10px 11px;border-radius:9px;cursor:pointer}
+.sl-auth-form .sl-password-toggle:hover{background:#edf0e9}
+.sl-auth-form #signupFields:not([hidden]){display:grid;gap:16px}
+.sl-auth-form #signupFields[hidden]{display:none!important}
+.sl-auth-form .sl-text-button{justify-self:end;align-self:auto;margin-top:-5px;padding:3px 0;background:none;border:0;color:#bc6841;font-size:13px;font-weight:750;text-decoration:none;cursor:pointer;width:auto}
+.sl-auth-form .sl-text-button:hover{text-decoration:underline}
+.sl-auth-form .sl-auth-submit{width:100%;min-height:49px;border-radius:12px;background:#263d33;color:#fff;box-shadow:none;font-size:15px;font-weight:800}
+.sl-auth-form .sl-auth-submit:hover:not(:disabled){background:#365648;box-shadow:0 8px 22px rgba(38,61,51,.15)}
+.sl-auth-switch{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#7b877e}
+.sl-auth-switch-btn{border:0;background:none;padding:6px 2px;color:#bc6841;font:inherit;font-weight:800;cursor:pointer}
+.sl-auth-switch-btn:hover{text-decoration:underline}
+.sl-auth-hint{font-size:12px;line-height:1.75;color:#879289;margin:4px 0 0;text-align:center}
+.sl-auth-message{font-size:13px;line-height:1.6;color:#ad5b37;margin:0;overflow-wrap:anywhere}
+.sl-auth-message:empty{display:none}
+.sl-auth-form button:focus-visible{outline:3px solid #b7c5b7;outline-offset:3px}
+@media(max-width:600px){.sl-auth-wrap{margin:22px auto 50px;padding:0 3px}.sl-auth-card{padding:28px 21px;border-radius:18px}.sl-auth-intro{margin-bottom:23px}.sl-auth-form input,.sl-auth-form select{font-size:16px}}
