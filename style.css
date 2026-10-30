@@ -440,3 +440,17 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
  .sl-tools-actions .btn{min-height:44px}
 }
 @media(max-width:370px){.sl-member-trigger .sl-member-name{max-width:65px}.sl-welcome-avatar{width:46px;height:46px}.sl-welcome-copy h1{font-size:21px}}
+
+/* Homepage refresh — shared palette, accessible forms, responsive layout */
+.sl-home-hero{background:radial-gradient(circle at 77% 42%,#3f6553 0%,transparent 45%),linear-gradient(125deg,#1b332a,#254237 73%,#4a5841)}
+.sl-home-search{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);align-items:center;gap:28px;padding:30px 34px;margin-top:32px;border:1px solid #dfe7dc;border-radius:25px;background:linear-gradient(125deg,#f7f8f1,#eef4eb);box-shadow:0 14px 32px #2446380b}
+.sl-home-search h2{margin:6px 0 10px;color:#254335}.sl-home-search .muted{margin:0;line-height:1.8}
+.sl-home-search-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:12px;align-items:end}
+.sl-home-search-form label{display:flex;flex-direction:column;gap:8px;color:#3e5a48;font-size:13px;font-weight:800;min-width:0}
+.sl-home-search-form select{width:100%;min-width:0;height:49px;padding:0 12px;border-radius:13px;border:1px solid #d7e1d6;background:#fffefa;color:#284636;font:inherit;font-weight:600}
+.sl-home-search-button{height:49px;white-space:nowrap}.sl-home-search-form select:focus-visible,.sl-home-search-button:focus-visible{outline:3px solid #d19b76;outline-offset:2px}
+.sl-home-steps{margin-top:42px}.sl-home-steps .sl-how-grid{position:relative}.sl-home-steps .sl-how-step{border-radius:20px;background:#fffefa;border:1px solid #e2e8df;box-shadow:0 12px 26px #2546380a;padding:26px}.sl-home-steps .sl-step-number{color:#c37a51;font-weight:900}.sl-home-step-icon{display:flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:14px;background:#e9f0e7;color:#2b6046;font-size:24px;margin:12px 0}.sl-home-steps .sl-how-step h3{color:#254335}
+.sl-home-featured{margin-top:52px}.sl-home-featured .section-heading .muted{margin-top:8px}.sl-home-join{background:linear-gradient(110deg,#f3e8da,#e9f1e8);border:1px solid #e1e3d9}.sl-home-join-actions{display:flex;gap:10px;flex-wrap:wrap}.sl-home-join .btn.ghost{background:#244638;color:white}.sl-home-join .btn.secondary{background:#fff9f1;color:#985739}
+@media(max-width:900px){.sl-home-search{grid-template-columns:1fr}.sl-home-search-form{grid-template-columns:1fr 1fr}.sl-home-search-button{grid-column:1/-1}}
+@media(max-width:650px){.sl-home-search{padding:23px 18px;margin-top:22px;gap:20px;border-radius:20px}.sl-home-search-form{grid-template-columns:1fr;gap:13px}.sl-home-search-button{grid-column:auto;width:100%}.sl-home-steps{margin-top:30px}.sl-home-steps .sl-how-step{padding:22px}.sl-home-featured{margin-top:35px}.sl-home-join-actions{width:100%}.sl-home-join-actions .btn{width:100%;justify-content:center}.sl-home-hero .hero-trust{gap:8px;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.sl-home-hero .hero-athlete,.sl-home-hero .hero-spark,.sl-home-hero .floating-note{animation:none!important}}
