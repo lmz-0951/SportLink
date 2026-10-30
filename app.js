@@ -22,6 +22,7 @@ const save=(k,v)=>localStorage.setItem('sl_'+k,JSON.stringify(v));
 let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',sportFilter='全部',areaFilter='全部';
 let jobs=load('jobs',initialJobs),applications=load('applications',[]);
 let availabilitySlots=[],availabilityError='',coachReviews=[],myReviews=[];
+let publicOpenBlocks=[],publicBusyBlocks=[],bookingUiVersion=0;
 const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(name,action,cls='btn')=>`<button type="button" class="${cls}" data-action="${action}">${name}</button>`;
@@ -80,7 +81,7 @@ async function refreshData(){
   const [a,c,b]=await Promise.all([
     supabaseClient.rpc('is_platform_admin'),
     supabaseClient.from('coaches').select('*').eq('user_id',user.id).maybeSingle(),
-    supabaseClient.from('bookings').select('id,student_id,coach_id,lesson_date,lesson_time,note,status,created_at,coaches(display_name,sport)').order('created_at',{ascending:false})
+    supabaseClient.from('bookings').select('id,student_id,coach_id,lesson_date,lesson_time,duration_minutes,note,status,created_at,coaches(display_name,sport)').order('created_at',{ascending:false})
   ]);
   if(a.error)throw a.error;if(c.error)throw c.error;if(b.error)throw b.error;
   admin=!!a.data;coachProfile=c.data;bookings=b.data||[];
@@ -88,11 +89,9 @@ async function refreshData(){
   if(ownReviewError)throw ownReviewError;myReviews=ownReviews||[];
   availabilitySlots=[];availabilityError='';
   if(coachProfile){
-    const {data:slots,error:slotError}=await supabaseClient.from('coach_availability')
-      .select('id,coach_id,lesson_date,lesson_time')
-      .eq('coach_id',coachProfile.id)
-      .order('lesson_date',{ascending:true})
-      .order('lesson_time',{ascending:true});
+    const {data:slots,error:slotError}=await supabaseClient.from('sportlink_open_blocks')
+      .select('id,coach_id,lesson_date,start_time,end_time,allowed_minutes')
+      .eq('coach_id',coachProfile.id).order('lesson_date',{ascending:true}).order('start_time',{ascending:true});
     if(slotError)availabilityError=slotError.message;
     else availabilitySlots=slots||[];
   }
@@ -111,6 +110,26 @@ function showConnectionNotice(message){
   clearTimeout(showConnectionNotice.timer);
   showConnectionNotice.timer=setTimeout(()=>notice.remove(),8000);
 }
+const slClock=d=>Number.isFinite(d.getTime())?`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`:'--:--';
+const slMins=t=>{const [h,m]=String(t).slice(0,5).split(':').map(Number);return h*60+m};
+const slTime=n=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
+const slDurationLabel=n=>`${n/60} 小時`;
+const slIsBusy=(start,end,busy)=>busy.some(b=>{const bs=slMins(b.lesson_time),be=bs+(Number(b.duration_minutes)||60);return start<be&&end>bs});
+const slDayBlocks=(blocks,date)=>blocks.filter(b=>b.lesson_date===date).sort((a,b)=>slMins(a.start_time)-slMins(b.start_time));
+function slScheduleHtml(blocks,busy,date,selection=null){
+ const daily=slDayBlocks(blocks,date);
+ if(!daily.length)return '<div class="sl-schedule-empty">這天沒有開放時段，請選擇其他日期。</div>';
+ const cells=[];
+ for(const block of daily){
+   for(let t=slMins(block.start_time);t+30<=slMins(block.end_time);t+=30){
+     const blocked=slIsBusy(t,t+30,busy);
+     const picked=!blocked&&selection&&selection.start>=0&&t>=selection.start&&t<selection.start+selection.duration;
+     const enabled=!blocked&&selection?.duration&&t+selection.duration<=slMins(block.end_time)&&(block.allowed_minutes||[]).includes(selection.duration)&&!slIsBusy(t,t+selection.duration,busy);
+     cells.push(`<button type="button" class="sl-time-cell ${picked?'is-selected':blocked?'is-booked':'is-free'}" data-sl-time="${t}" ${enabled?'':'disabled'} title="${slTime(t)}～${slTime(t+30)}"><span>${slTime(t)}</span><small>${picked?'已選取':blocked?'已預約':'可預約'}</small></button>`);
+   }
+ }
+ return `<div class="sl-time-grid">${cells.join('')}</div><div class="sl-schedule-legend"><span>● 可預約</span><span>● 已選取</span><span>● 已預約</span></div>`;
+}
 function bookingCard(b){
   const coachName=b.coaches?.display_name||'教練';
   const sport=b.coaches?.sport||'課程';
@@ -118,12 +137,13 @@ function bookingCard(b){
   const isStudent=b.student_id===user?.id;
   // lesson_date / lesson_time are Taiwan local calendar values in this project.
   const lessonStart=new Date(`${b.lesson_date}T${String(b.lesson_time).slice(0,8)}`);
+  const lessonEnd=new Date(lessonStart.getTime()+(Number(b.duration_minutes)||60)*60000);
   const canCancel=isStudent&&['pending','accepted'].includes(b.status)&&Number.isFinite(lessonStart.getTime())&&lessonStart.getTime()-Date.now()>=24*60*60*1000;
-  const canComplete=owned&&b.status==='accepted'&&Number.isFinite(lessonStart.getTime())&&lessonStart.getTime()<=Date.now();
+  const canComplete=owned&&b.status==='accepted'&&Number.isFinite(lessonEnd.getTime())&&lessonEnd.getTime()<=Date.now();
   const canReview=isStudent&&!coachProfile&&user?.role!=='coach'&&b.status==='completed'&&!myReviews.some(r=>r.booking_id===b.id);
   const reviewed=isStudent&&b.status==='completed'&&myReviews.some(r=>r.booking_id===b.id);
   const cancelInfo=isStudent&&['pending','accepted'].includes(b.status)&&!canCancel?'<p class="muted small">距離上課不足 24 小時，無法自行取消，請聯絡教練。</p>':'';
-  return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(b.lesson_time)} · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${canComplete?btn('標記課程完成','booking-complete:'+b.id,'btn secondary'):''}${canReview?btn('評價教練（自願）','review:'+b.id,'btn secondary'):''}${reviewed?'<p class="muted small">已提交評價，無法修改或刪除。</p>':''}${cancelInfo}</div>`;
+  return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(String(b.lesson_time).slice(0,5))}～${esc(slClock(lessonEnd))} · ${esc((Number(b.duration_minutes)||60)/60)} 小時 · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${canComplete?btn('標記課程完成','booking-complete:'+b.id,'btn secondary'):''}${canReview?btn('評價教練（自願）','review:'+b.id,'btn secondary'):''}${reviewed?'<p class="muted small">已提交評價，無法修改或刪除。</p>':''}${cancelInfo}</div>`;
 }
 // Archive completed/cancelled/rejected bookings without deleting any records.
 const slArchivedStatuses=new Set(['completed','cancelled','rejected']);
@@ -173,65 +193,86 @@ function coachEditPanel(){
     </div>`;
 }
 function availabilityPanel(){
-  if(!coachProfile)return '';
-  if(!coachProfile.is_active)return '<p class="muted">教練通過審核後才能開放預約時段。</p>';
-  const slots=availabilitySlots.map(s=>`<div class="item"><div class="row"><span>📅 ${esc(s.lesson_date)}　${esc(String(s.lesson_time).slice(0,5))}</span>${btn('移除時段','availability-remove:'+s.id,'btn secondary')}</div></div>`).join('');
-  return `<div class="section"><h2>我的可預約時段</h2><p class="muted">先開放日期和時間，之後才會讓學生從這些時段選擇。</p>
-    ${availabilityError?`<p class="notice">時段讀取失敗：${esc(availabilityError)}</p>`:''}
-    <form class="form" id="availabilityForm">
-      <label>開放日期<input name="date" type="date" min="${dateToday()}" required></label>
-      <label>開始時間<input name="time" type="time" required></label>
-      <button class="btn" type="submit">新增可預約時段</button>
-    </form><div class="list">${slots||'<div class="item muted">目前沒有開放時段。</div>'}</div></div>`;
+ if(!coachProfile)return '';
+ if(!coachProfile.is_active)return '<p class="muted">教練通過審核後才能開放預約時段。</p>';
+ const slots=availabilitySlots.map(b=>`<div class="sl-block-row"><div><b>${esc(b.lesson_date)}</b><p>${esc(String(b.start_time).slice(0,5))}～${esc(String(b.end_time).slice(0,5))} · 可預約 ${esc((b.allowed_minutes||[]).map(slDurationLabel).join('、'))}</p></div>${btn('移除時段','block-remove:'+b.id,'btn secondary')}</div>`).join('');
+ return `<section class="section sl-block-manager"><div class="sl-section-title"><span class="eyebrow">COACH SCHEDULE</span><h2>我的開放時段</h2><p class="muted">設定一整段教學時間，學生可預約其中一部分。已預約的時間不會重複開放。</p></div>
+ ${availabilityError?`<p class="notice">時段讀取失敗：${esc(availabilityError)}</p>`:''}
+ <form class="sl-block-form" id="availabilityForm">
+  <label>上課日期<input name="date" type="date" min="${dateToday()}" required></label>
+  <label>開始時間<input name="start" type="time" step="1800" value="13:00" required></label>
+  <label>結束時間<input name="end" type="time" step="1800" value="18:00" required></label>
+  <fieldset class="sl-duration-options"><legend>學生可以預約的時長（可複選）</legend><label><input type="checkbox" name="duration" value="60" checked> 1 小時</label><label><input type="checkbox" name="duration" value="90"> 1.5 小時</label><label><input type="checkbox" name="duration" value="120" checked> 2 小時</label><label><input type="checkbox" name="duration" value="180"> 3 小時</label></fieldset>
+  <button class="btn" type="submit">＋ 新增開放時段</button><p class="muted small">時間以台灣時間計算，單次最多開放 12 小時。已存在預約的時段無法直接刪除。</p>
+ </form><div class="sl-block-list">${slots||'<p class="muted">目前沒有開放時段。</p>'}</div></section>`;
 }
+
 function render(){
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
    if(page==='home')app.innerHTML=`<section class="hero"><div class="hero-copy"><span class="hero-eyebrow"><span class="live-dot"></span> SPORTLINK · 雙北與桃園</span><h1>找到對的教練，<br><em>突破每一個可能。</em></h1><p>從第一堂課到下一個里程碑，探索專業運動教練，找到適合你的訓練方式。</p><div class="hero-actions">${btn('探索專業教練 ↗','go:coaches')}${btn('了解代課機會','go:substitutions','btn ghost')}</div><div class="hero-trust"><span>✦ 真實教練資料</span><span>✦ 彈性預約時段</span><span>✦ 學員真實評價</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><img class="hero-athlete" src="./athlete.svg" alt="" loading="eager" decoding="async"><div class="hero-spark spark-one">✦</div><div class="hero-spark spark-two">✧</div><div class="floating-note note-one">✦ MOVE BETTER</div><div class="floating-note note-two">YOUR NEXT LEVEL ↗</div></div></section><section class="section intro-section"><div class="section-heading"><div><span class="eyebrow">WHAT WE DO</span><h2>每一步進步，都有專業陪伴。</h2></div><p class="muted">讓尋找教練、管理課程與運動專業媒合變得更簡單。</p></div><div class="grid features"><div class="card feature-card feature-find"><div class="feature-icon">◎</div><h3>找到適合你的教練</h3><p>依運動項目與授課地區探索教練，查看資歷、評價與課程價格。</p>${btn('探索教練 ↗','go:coaches','btn secondary')}</div><div class="card feature-card feature-plan"><div class="feature-icon">▦</div><h3>輕鬆安排訓練</h3><p>直接選擇教練開放的時段，管理預約與課程紀錄。</p>${btn('我的課程 ↗','go:dashboard','btn secondary')}</div><div class="card feature-card feature-connect"><div class="feature-icon">↗</div><h3>串聯運動專業</h3><p>為運動教練打造展示專長、管理課程與探索代課機會的平台。</p>${btn('代課機會 ↗','go:substitutions','btn secondary')}</div></div></section><section class="section sl-how-section" aria-labelledby="slHowTitle"><div class="section-heading"><div><span class="eyebrow">HOW IT WORKS</span><h2 id="slHowTitle">找到教練，三步就開始。</h2></div><p class="muted">從搜尋到預約，讓每次訓練更有方向。</p></div><div class="sl-how-grid"><div class="sl-how-step"><span class="sl-step-number">01</span><h3>探索專業教練</h3><p>依照運動項目與地區，找到符合需求的教練。</p></div><div class="sl-how-step"><span class="sl-step-number">02</span><h3>查看介紹與時段</h3><p>了解教學經歷、課程價格及可預約時間。</p></div><div class="sl-how-step"><span class="sl-step-number">03</span><h3>送出課程預約</h3><p>登入後提出預約，等待教練確認。</p></div></div></section><section class="section featured-section"><div class="section-heading"><div><span class="eyebrow">EXPLORE COACHES</span><h2>探索專業教練</h2></div>${btn('查看全部教練 ↗','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')||'<div class="empty">教練即將登場，歡迎稍後再來探索。</div>'}</div></section><section class="closing-banner"><div><span class="eyebrow">START YOUR JOURNEY</span><h2>下一次突破，從這裡開始。</h2><p>找到適合你的運動節奏，讓專業教練陪你前進。</p></div>${btn('立即尋找教練 ↗','go:coaches','btn ghost')}</section>`;
   else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
-    app.innerHTML=`<div class="panel card coach-detail"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}${coachReviewPanel(c.id)}<p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><h3>提出正式課程預約</h3><form class="form" id="bookingForm"><label>選擇教練開放的時段<select name="slot" id="bookingSlot" required disabled><option value="">正在載入可預約時段…</option></select></label><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學游泳"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button></form><p class="muted small" id="bookingSlotMessage">正在讀取教練開放的時段…</p><p class="muted small">預約將儲存在 Supabase，並由教練確認。送出不代表已接受。</p></div>`;
-    const form=app.querySelector('#bookingForm'),select=form.querySelector('#bookingSlot'),message=app.querySelector('#bookingSlotMessage'),submit=form.querySelector('button[type="submit"]');
-    const requestedPage=page;
+    app.innerHTML=`<div class="panel card coach-detail"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}${coachReviewPanel(c.id)}<p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><section class="sl-booking-widget"><span class="eyebrow">BOOK A SESSION</span><h2>選擇預約時間</h2><p class="muted">綠色代表可預約，橘色代表已有預約。選擇時長後，系統會計算結束時間。</p><form class="form" id="bookingForm"><label>上課日期<input name="date" type="date" id="slBookingDate" min="${dateToday()}" required></label><div id="slBookingSchedule" aria-live="polite">正在讀取時段…</div><label>課程時長<select name="duration" id="slBookingDuration" required disabled><option value="">請先選擇日期</option></select></label><label>開始時間<select name="start" id="slBookingStart" required disabled><option value="">請先選擇時長</option></select></label><div class="sl-booking-summary" id="slBookingSummary">選擇日期、時長與開始時間後，這裡會顯示預約資訊。</div><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學羽球"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button><p id="bookingSlotMessage" class="muted small" role="status"></p></form></section><p class="muted small">預約將儲存在 Supabase，需由教練確認；課程結束 24 小時後自動完成。</p></div>`;
+    const form=app.querySelector('#bookingForm'),dateInput=form.elements.date,durationInput=form.elements.duration,startInput=form.elements.start,submit=form.querySelector('button[type=submit]'),schedule=app.querySelector('#slBookingSchedule'),summary=app.querySelector('#slBookingSummary'),message=app.querySelector('#bookingSlotMessage');
+    const requestedPage=page,requestVersion=++bookingUiVersion;
+    let blocks=[],busy=[],chosen=null;
+    function choices(){
+      const date=dateInput.value,dayBlocks=slDayBlocks(blocks,date);
+      const durations=[...new Set(dayBlocks.flatMap(b=>b.allowed_minutes||[]))].sort((a,b)=>a-b);
+      const previousDuration=Number(durationInput.value);
+      durationInput.innerHTML='<option value="">選擇課程時長</option>'+durations.map(n=>`<option value="${n}">${slDurationLabel(n)}</option>`).join('');
+      if(durations.includes(previousDuration))durationInput.value=String(previousDuration);
+      durationInput.disabled=!durations.length;
+      const duration=Number(durationInput.value),starts=[];
+      if(duration){
+        for(const block of dayBlocks){
+          for(let t=slMins(block.start_time);t+duration<=slMins(block.end_time);t+=30){
+            if((block.allowed_minutes||[]).includes(duration)&&!slIsBusy(t,t+duration,busy.filter(b=>b.lesson_date===date))&&new Date(date+'T'+slTime(t)+':00')>new Date())starts.push(t);
+          }
+        }
+      }
+      const unique=[...new Set(starts)].sort((a,b)=>a-b);
+      const previousStart=startInput.value===''?null:Number(startInput.value);
+      startInput.innerHTML='<option value="">選擇開始時間</option>'+unique.map(t=>`<option value="${t}">${slTime(t)}～${slTime(t+duration)}</option>`).join('');
+      if(previousStart!==null&&unique.includes(previousStart))startInput.value=String(previousStart);
+      startInput.disabled=!unique.length;
+      chosen=duration&&startInput.value!==''?{start:Number(startInput.value),duration}:null;
+      schedule.innerHTML=slScheduleHtml(blocks,busy.filter(b=>b.lesson_date===date),date,{start:chosen?.start??-1,duration});
+      summary.textContent=chosen?`${date} ${slTime(chosen.start)}～${slTime(chosen.start+chosen.duration)} · ${slDurationLabel(chosen.duration)} · 預估 NT$${Math.round(Number(c.price)*chosen.duration/60).toLocaleString()}（實際費用請與教練確認）`:'請選擇可預約的課程時長與開始時間。';
+      submit.disabled=!chosen;
+      message.textContent=dayBlocks.length?'每個區塊代表 30 分鐘；只有連續且未被預約的時間才能選取。':'這個日期沒有開放時段。';
+    }
     (async()=>{
       try{
-        const [{data:slots,error:slotError},{data:reserved,error:bookingError}]=await Promise.all([
-          supabaseClient.from('coach_availability').select('id,lesson_date,lesson_time').eq('coach_id',c.id).order('lesson_date',{ascending:true}).order('lesson_time',{ascending:true}),
-          // Only visible to relevant users under RLS; this is for UI hints, not security.
-          supabaseClient.from('bookings').select('lesson_date,lesson_time').eq('coach_id',c.id).in('status',['pending','accepted'])
+        const [a,b]=await Promise.all([
+          supabaseClient.from('sportlink_open_blocks').select('id,lesson_date,start_time,end_time,allowed_minutes').eq('coach_id',c.id).gte('lesson_date',dateToday()).order('lesson_date'),
+          supabaseClient.rpc('sportlink_busy_intervals',{p_coach_id:c.id})
         ]);
-        if(slotError)throw slotError;
-        // Booking rows may be hidden by RLS, so server constraints remain authoritative.
-        const reservedKeys=new Set((bookingError?[]:reserved||[]).map(b=>b.lesson_date+'|'+String(b.lesson_time).slice(0,5)));
-        const now=new Date();
-        const openSlots=(slots||[]).filter(s=>{
-          const day=s.lesson_date,time=String(s.lesson_time).slice(0,5);
-          const localStart=new Date(day+'T'+time+':00');
-          return localStart>now&&!reservedKeys.has(day+'|'+time);
-        });
-        if(page!==requestedPage||!app.contains(form))return;
-        select.innerHTML='<option value="">請選擇日期與時間</option>'+openSlots.map(s=>`<option value="${esc(s.id)}">${esc(s.lesson_date)}　${esc(String(s.lesson_time).slice(0,5))}</option>`).join('');
-        select.disabled=openSlots.length===0;
-        submit.disabled=openSlots.length===0;
-        message.textContent=openSlots.length?'請選擇教練開放的時段。若時段已被其他學生預約，送出時會提示。':'教練目前尚未開放可預約時段。';
-        form._openSlots=openSlots;
-      }catch(err){if(page!==requestedPage||!app.contains(form))return;select.innerHTML='<option value="">時段讀取失敗</option>';message.textContent='讀取時段失敗：'+errorText(err);console.error(err)}
+        if(a.error)throw a.error;if(b.error)throw b.error;
+        if(page!==requestedPage||requestVersion!==bookingUiVersion||!app.contains(form))return;
+        blocks=a.data||[];busy=b.data||[];
+        const future=blocks.map(x=>x.lesson_date).find(d=>d>=dateToday());dateInput.value=future||dateToday();choices();
+      }catch(err){if(page!==requestedPage||!app.contains(form))return;schedule.innerHTML='<p class="notice">無法讀取開放時段：'+esc(errorText(err))+'</p>';message.textContent='請確認 Supabase 資料庫已完成新版 SQL 設定。'}
     })();
+    schedule.addEventListener('click',e=>{const button=e.target.closest('button[data-sl-time]');if(!button||button.disabled)return;startInput.value=button.dataset.slTime;startInput.dispatchEvent(new Event('change'))});
+    dateInput.addEventListener('change',choices);
+    durationInput.addEventListener('change',choices);
+    startInput.addEventListener('change',()=>{
+      const duration=Number(durationInput.value);chosen=startInput.value!==''&&duration?{start:Number(startInput.value),duration}:null;
+      schedule.innerHTML=slScheduleHtml(blocks,busy.filter(b=>b.lesson_date===dateInput.value),dateInput.value,{start:chosen?.start??-1,duration});
+      summary.textContent=chosen?`${dateInput.value} ${slTime(chosen.start)}～${slTime(chosen.start+chosen.duration)} · ${slDurationLabel(chosen.duration)} · 預估 NT$${Math.round(Number(c.price)*chosen.duration/60).toLocaleString()}（實際費用請與教練確認）`:'請選擇開始時間';submit.disabled=!chosen;
+    });
     form.onsubmit=async e=>{
-      e.preventDefault();
-      if(!user){alert('請先登入');page='account';render();return}
+      e.preventDefault();if(!user){alert('請先登入');page='account';render();return}
       if(user.id===c.user_id){alert('不能預約自己的課程');return}
-      const f=new FormData(form),slot=(form._openSlots||[]).find(s=>s.id===f.get('slot'));
-      if(!slot){alert('請先選擇有效的可預約時段');return}
+      if(!chosen){alert('請先選擇時段');return}
       submit.disabled=true;
       try{
-        const {error}=await supabaseClient.from('bookings').insert({student_id:user.id,coach_id:c.id,lesson_date:slot.lesson_date,lesson_time:slot.lesson_time,note:String(f.get('note')||'').trim(),status:'pending'});
+        const {error}=await supabaseClient.rpc('sportlink_create_booking',{p_coach_id:c.id,p_date:dateInput.value,p_start:slTime(chosen.start),p_duration:chosen.duration,p_note:String(new FormData(form).get('note')||'').trim()});
         if(error)throw error;
         alert('預約已送出，等待教練確認');page='dashboard';await reload();
-      }catch(err){
-        console.error(err);
-        alert(err?.code==='23505'?'這個時段剛剛已被其他學生預約，請重新進入教練頁面選擇其他時間。':'預約失敗：'+errorText(err));
-      }finally{submit.disabled=false}
+      }catch(err){message.textContent='預約失敗：'+errorText(err);submit.disabled=false}
     };
   }
    else if(page.startsWith('review:')){
@@ -346,18 +387,15 @@ function render(){
      };
     const availabilityForm=app.querySelector('#availabilityForm');
     if(availabilityForm)availabilityForm.onsubmit=async e=>{
-      e.preventDefault();
-      const submit=availabilityForm.querySelector('button');
-      const f=new FormData(availabilityForm);
+      e.preventDefault();const submit=availabilityForm.querySelector('button[type=submit]'),f=new FormData(availabilityForm);
+      const durations=f.getAll('duration').map(Number),start=String(f.get('start')),end=String(f.get('end'));
+      if(!durations.length){alert('請至少選擇一種可預約時長');return}
+      if(slMins(end)<=slMins(start)||slMins(end)-slMins(start)>720){alert('結束時間必須晚於開始時間，最多 12 小時');return}
       submit.disabled=true;
       try{
-        const {data,error}=await supabaseClient.rpc('sportlink_add_availability',{
-          p_date:f.get('date'),p_time:f.get('time')
-        });
-        if(error)throw error;
-        if(data===false)throw Error('沒有新增時段，可能是該時段已存在');
-        await reload();
-      }catch(err){alert('新增時段失敗：'+errorText(err));submit.disabled=false}
+        const {error}=await supabaseClient.rpc('sportlink_add_open_block',{p_date:f.get('date'),p_start:start,p_end:end,p_durations:durations});
+        if(error)throw error;await reload();
+      }catch(err){alert('新增開放時段失敗：'+errorText(err));submit.disabled=false}
     };
   }
   else if(page==='coach-apply'){
@@ -412,19 +450,14 @@ document.addEventListener('click',async e=>{
      catch(err){alert('標記完成失敗：'+errorText(err));b.disabled=false}
      return;
    }
-  if(cmd==='availability-remove'){
-    if(!coachProfile?.is_active)return;
-    if(!confirm('確定移除這個開放時段？已有預約的時段可能無法移除。'))return;
-    b.disabled=true;
-    try{
-      const {data,error}=await supabaseClient.rpc('sportlink_remove_availability',{p_slot_id:id});
-      if(error)throw error;
-      if(!data)throw Error('無法移除，可能已有預約或沒有權限');
-      await reload();
-    }catch(err){alert('移除時段失敗：'+errorText(err));b.disabled=false}
-    return;
-  }
-  if(cmd==='booking-accept'||cmd==='booking-reject'||cmd==='booking-cancel'){
+     if(cmd==='block-remove'){
+     if(!coachProfile?.is_active)return;
+     if(!confirm('確定移除這個開放時段？若已有預約，系統會拒絕移除。'))return;
+     b.disabled=true;
+     try{const {error}=await supabaseClient.rpc('sportlink_remove_open_block',{p_block_id:id});if(error)throw error;await reload()}
+     catch(err){alert('移除時段失敗：'+errorText(err));b.disabled=false}
+     return;
+   }if(cmd==='booking-accept'||cmd==='booking-reject'||cmd==='booking-cancel'){
     if(!user)return;const action=cmd.slice(8);if(!confirm(action==='accept'?'確定接受這筆預約？':action==='reject'?'確定拒絕這筆預約？':'確定取消預約？'))return;
     b.disabled=true;try{const {data,error}=await supabaseClient.rpc('sportlink_change_booking_status',{p_booking_id:id,p_action:action});if(error)throw error;if(!data)throw Error(action==='cancel'?'無法取消：可能距離上課不足 24 小時，或預約狀態已變更。':'沒有權限或預約已經處理');await reload()}catch(err){alert('操作失敗：'+errorText(err));b.disabled=false}return;
   }
