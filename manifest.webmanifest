@@ -11,8 +11,8 @@
     "window-controls-overlay",
     "standalone"
   ],
-  "background_color": "#faf7f2",
-  "theme_color": "#faf7f2",
+  "background_color": "#182431",
+  "theme_color": "#182431",
   "icons": [
     {
       "src": "/icon-192.png",

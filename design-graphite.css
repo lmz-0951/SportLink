@@ -1,0 +1,75 @@
+/* SPORTLINK Graphite Edition — visual-only theme, 2026-10-30.
+   No JS, database, routing or booking logic is modified. */
+:root{--navy:#dfe9f7;--blue:#1976ff;--muted:#a5b3c6;--line:#3b4e64;--sl-ink:#eaf2ff;--sl-electric:#1976ff;color:#eaf2ff;background:#182431;color-scheme:dark}
+html{background:#182431}
+body{color:#eaf2ff;background:radial-gradient(ellipse 62% 32% at 8% 25%,#34475b88,transparent 80%),radial-gradient(ellipse 46% 25% at 100% 75%,#283c5380,transparent 80%),linear-gradient(145deg,#202d3b,#18232f 70%,#222f3c)}
+.site-header{background:#14202df2;border-bottom:1px solid #34465b;box-shadow:0 5px 30px #09131e22}
+.brand,.foot strong{color:#fff}.brand span,.foot strong span{color:#2584ff}.brand i,.foot strong i{color:#2584ff}
+.nav button{color:#d6e2f3}.nav button.active,.nav-links button:hover,.nav-links button.active{background:#30465e;color:#78b8ff}
+.nav .login{background:#176bf0;color:white}.nav .login:hover{background:#3185ff;color:white}
+.sl-member-trigger{background:#2a3a4d;color:#eef5ff;border:1px solid #455b74;box-shadow:0 8px 24px #07132033}
+.sl-member-trigger:hover{background:#364b63}.sl-member-initial{background:#1674ff;color:white}
+.sl-member-popover{background:#233244;border:1px solid #435a73;box-shadow:0 18px 50px #030b16aa}
+.sl-member-popover-head{color:#e9f3ff;border-bottom-color:#435a73}.sl-member-role{color:#a8b9ce}
+.nav .sl-member-popover button{color:#e7efff}.nav .sl-member-popover button:hover{background:#344a63}.nav .sl-member-popover .sl-member-logout{color:#ffad9f;border-top-color:#435a73}
+.hero.sl-home-hero,.hero{background:radial-gradient(circle at 80% 42%,#25517b88 0%,transparent 47%),linear-gradient(122deg,#0c1827 0%,#122b46 62%,#223b56 100%);border:1px solid #476a8c;color:#fff;box-shadow:0 24px 58px #06101c66}
+.sl-home-hero:before{background-image:radial-gradient(#83b8ed29 1px,transparent 1px)}.sl-home-hero:after{background:radial-gradient(ellipse,#196df144,transparent 70%)}
+.sl-home-hero .hero-eyebrow,.hero-eyebrow{color:#c2ddff;background:#d7e8ff10;border-color:#8ebdff45}.sl-home-hero .live-dot{background:#39bfff;box-shadow:0 0 0 4px #39bfff25}
+.sl-home-hero h1,.sl-home-hero h1 strong,.hero h1{color:#fff}.sl-home-hero h1 em,.hero h1 em{color:#2584ff}
+.sl-home-hero p,.hero p{color:#d4e1f2}.sl-home-hero .hero-trust,.hero-trust{color:#b4c6db}
+.sl-home-hero .hero-orbit{border-color:#83b9ff55}.sl-home-hero .hero-spark{color:#5c9fff;text-shadow:0 0 20px #3d85ff66}
+.sl-home-hero .floating-note{background:#1d3957c9;color:#e5f3ff;border:1px solid #6b9bc36b;box-shadow:0 9px 25px #05132255}
+.sl-home-search{background:linear-gradient(125deg,#39495b,#2c3d51);border:1px solid #536a81;box-shadow:0 15px 36px #06132055}
+.sl-home-search h2,.sl-home-search-form label{color:#f2f7ff}.sl-home-search .muted{color:#c5d3e5}
+.sl-home-search-form select{background:#24354a;border:1px solid #58708b;color:#fff;color-scheme:dark}
+.section h2,.card h3,.sl-home-search h2,.closing-banner h2{color:#f0f6ff}.eyebrow{color:#69adff}
+.card,.item,.panel,.sl-student-dashboard,.sl-calendar-card,.sl-favorites-card{background:linear-gradient(155deg,#35465a,#29394c);color:#e8f0fc;border:1px solid #4a6078;box-shadow:0 12px 35px #07111d35}
+.feature-card,.coach-card,.sl-home-steps .sl-how-step{background:linear-gradient(155deg,#35465a,#28384b);border-color:#4b637c;color:#eaf2ff;box-shadow:0 12px 30px #06132044}
+.feature-card .feature-icon{background:#23476b;color:#64aeff;box-shadow:inset 0 0 0 1px #4b779d}
+.feature-card p,.coach-card>p,.card p,.item p{color:#c5d3e3}.coach-card .row{border-top-color:#4b6076}.coach-card .price,.price{color:#85baff}.coach-card::before{background:linear-gradient(#1976ff,#70b6ff)}.coach-card .avatar,.avatar{background:#294968}.muted{color:#b4c3d7}
+.pill{background:#244769;color:#a7d2ff;border:1px solid #4776a4}
+.btn,.btn.primary,.btn:not(.ghost):not(.secondary),button.btn.primary{background:linear-gradient(110deg,#1268ec,#2889ff);color:#fff;border-color:#237bff;box-shadow:0 8px 22px #0763ff42}
+.btn:hover,.btn.primary:hover,.btn:not(.ghost):not(.secondary):hover{background:linear-gradient(110deg,#0d5bd4,#1979f6);border-color:#318bff;box-shadow:0 12px 26px #0866ff55}
+.hero-actions .btn:first-child{background:linear-gradient(110deg,#ed762e,#ff973c);border-color:#ff9139;box-shadow:0 9px 22px #f0803240}
+.hero-actions .btn:first-child:hover{background:linear-gradient(110deg,#dc6425,#f38832)}
+.btn.secondary,.tabs button{background:#30465e;color:#d6e9ff;box-shadow:inset 0 0 0 1px #54708d}.btn.secondary:hover{background:#3b5470}.btn.ghost{background:#edf3fa;color:#182e48}.btn.ghost:hover{background:#dbeafa}.tabs button.active{background:#176ef2;color:#fff}
+.field,.form input,.form select,.form textarea{background:#e8eef7;color:#1b2b40;border-color:#aebfd2;color-scheme:light}
+.form label{color:#d9e7f8}.notice{background:#233f5c;border-left-color:#3189ff;color:#d9ebff}.empty{background:#2b3b4f;border-color:#526b84;color:#c2d0e0}
+.sl-home-join,.closing-banner{background:linear-gradient(110deg,#2e4359,#364b60);border:1px solid #56718a;color:#eaf2ff}.closing-banner p{color:#c5d3e3}.closing-banner .btn.ghost{background:#e7f0ff;color:#1b3048}
+.sl-welcome-card{background:radial-gradient(circle at 90% 20%,#2167ad55,transparent 39%),linear-gradient(110deg,#0e1d30,#142f4c 75%,#1c4167);border:1px solid #43658b;color:#fff;box-shadow:0 18px 42px #07111e77}
+.sl-welcome-card:after{border-color:#87baff2b;box-shadow:0 0 0 55px #458fff0a}
+.sl-welcome-avatar{background:#dceaff;border:2px solid #8fb7e9;color:#1769ef}.sl-welcome-eyebrow{color:#7db8ff}.sl-welcome-copy h1{color:#fff}.sl-welcome-copy p{color:#c8d8ed}.sl-welcome-dot{color:#68aaff}.sl-welcome-footer{border-top-color:#7396b64b;color:#e0eaff}.sl-welcome-spark{color:#58a7ff}.sl-tools-label{color:#b8c7d9}
+.sl-student-dashboard{background:linear-gradient(145deg,#34475b,#27394d)}.sl-next-class{background:linear-gradient(115deg,#133e72,#1d76ec)!important}.sl-calendar-day.selected{background:#176ef2;color:#fff}.sl-calendar-nav button{background:#304a66;border-color:#587b9d;color:#dbeaff}.sl-fav-info,.sl-widget-title h3{color:#e9f2ff}
+.sl-demo-details{color:#e3ecf8;border-color:#526b84;background:#293c50}.sl-demo-details p{color:#b8c8dc}
+.foot{background:#15212e;border-top:1px solid #394e65;color:#b9c8d9}.foot p,.footer-right small{color:#a8b9ce}
+/* Keep operational controls readable, including date/time pickers and status chips */
+input,select,textarea{accent-color:#1976ff}input[type=date],input[type=time],input[type=number],input[type=text],input[type=email],input[type=password],select,textarea{color-scheme:light}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:#64a9ff}
+@media(max-width:700px){.nav .sl-mobile-menu-toggle{background:#2c4055;color:#e4f0ff;border-color:#506a85}.nav-links{border-top-color:#41566e}.hero.sl-home-hero{padding:36px 24px}.sl-home-hero .floating-note{background:#244463dd}.sl-welcome-card{padding:22px 19px 18px}}
+@media(prefers-reduced-motion:reduce){.card,.item,.btn{transition:none!important}}
+/* Coach schedules, bookings and student center: dark shells / readable light controls */
+.sl-booking-section,.sl-coach-profile,.sl-block-manager,.sl-booking-widget{background:linear-gradient(145deg,#35475a,#2a3a4d);border-color:#4e647c;color:#edf4ff}
+.sl-block-form{background:#34475b;border-color:#536b84;color:#edf4ff}
+.sl-block-form label,.sl-booking-section label,.sl-coach-profile label{color:#dce8f7}
+.sl-block-row,.sl-board-booking,.sl-profile-fold,.sl-student-lesson,.sl-fav-row{background:#2b3d51;border-color:#50657d;color:#eaf2ff}
+.sl-block-row b,.sl-board-heading h2,.sl-student-head h2,.sl-profile-body h2{color:#f0f6ff}
+.sl-block-row p,.sl-board-heading p,.sl-student-head p{color:#bdcde0}
+.sl-board-stats>div,.sl-board-stats>div:nth-child(2),.sl-board-stats>div:nth-child(3),.sl-student-stats>div,.sl-student-stats>div:nth-child(2),.sl-student-stats>div:nth-child(3){background:#3b5067;border-color:#5c748d}
+.sl-board-stats strong,.sl-student-stats strong{color:#f0f6ff}.sl-board-stats small,.sl-student-stats small{color:#bed0e6}
+.sl-board-filter,.sl-student-tab{background:#30445a;border-color:#506a84;color:#dce9fa}
+.sl-board-filter.is-active,.sl-student-tab.is-active{background:#1676fa;color:#fff;border-color:#2788ff}
+.sl-board-date,.sl-student-board .sl-board-date,.sl-student-date{background:#344e6b;border-color:#5a7795;color:#e2f0ff}
+.sl-board-date small,.sl-profile-fold>summary small{color:#aabed3}
+.sl-board-booking{border-left-color:#3189ff}.sl-board-booking .pill{background:#254a72;color:#d5eaff}
+.sl-profile-fold>summary{color:#e8f3ff}.sl-profile-body{border-top-color:#536a84}
+.sl-student-head-icon{background:#254c76;color:#8bc0ff}
+.sl-student-tabs{border-bottom-color:#4e637a}
+.sl-time-cell.is-free{background:#315b54;color:#d5fff0}.sl-time-cell.is-selected{background:#176ef2;color:#fff}.sl-time-cell.is-booked{background:#975b43;color:#fff}
+.sl-schedule-legend{color:#c6d5e7}.sl-schedule-legend span:nth-child(1){color:#75e0b4}.sl-schedule-legend span:nth-child(2){color:#75b2ff}.sl-schedule-legend span:nth-child(3){color:#ffad85}
+.sl-schedule-empty,.sl-booking-summary,.sl-board-no-results{background:#30455b;color:#d7e7f8;border-color:#54718c}
+.sl-widget-title h3,.sl-fav-info{color:#eaf2ff}
+.sl-calendar-card,.sl-favorites-card{background:#304257}.sl-calendar-day{color:#d9e8fa}.sl-calendar-day:hover{background:#415e7c}
+.sl-home-steps .sl-step-number{color:#67adff}
+/* Accessibility: prevent original warm edition from leaking into text and links */
+a{color:#81b9ff}.section-heading .muted,.small.muted{color:#b6c8de}
+@media(max-width:700px){.sl-booking-section,.sl-coach-profile{padding:16px}.sl-home-search-form select{color-scheme:dark}}

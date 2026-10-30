@@ -1,6 +1,6 @@
 /* SportLink PWA V1: offline shell only; never cache Supabase or authenticated API data. */
-const CACHE = 'sportlink-shell-v2';
-const SHELL = ['/', '/index.html', '/style.css', '/athlete.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'sportlink-shell-v3';
+const SHELL = ['/', '/index.html', '/style.css', '/design-graphite.css', '/athlete.svg', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
@@ -19,7 +19,7 @@ self.addEventListener('fetch', event => {
     return;
   }
   // Static assets only. Application JS is network-first to avoid stale logic.
-  if (['/style.css', '/app.js', '/athlete.svg', '/pwa-register.js'].includes(url.pathname) || ['/icon-192.png','/icon-512.png'].includes(url.pathname)) {
+  if (['/style.css', '/design-graphite.css', '/app.js', '/athlete.svg', '/pwa-register.js'].includes(url.pathname) || ['/icon-192.png','/icon-512.png'].includes(url.pathname)) {
     event.respondWith(fetch(req).then(response => {
       if (response.ok) { const copy = response.clone(); caches.open(CACHE).then(cache => cache.put(req, copy)); }
       return response;
