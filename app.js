@@ -21,6 +21,7 @@ const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('sl_'+k))??d}catch
 const save=(k,v)=>localStorage.setItem('sl_'+k,JSON.stringify(v));
 let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',sportFilter='全部',areaFilter='全部';
 let jobs=load('jobs',initialJobs),applications=load('applications',[]);
+let slCommunityTab='discover';
 let availabilitySlots=[],availabilityError='',coachReviews=[],myReviews=[];
 let publicOpenBlocks=[],publicBusyBlocks=[],bookingUiVersion=0;
 let favoriteCoachIds=new Set(),favoritesReady=false;
@@ -293,10 +294,25 @@ function slWelcomeCard(){
   const role=coach?'教練會員':admin?'平台管理員':'學生會員';
   return `<section class="sl-welcome-card" aria-label="會員歡迎資訊"><div class="sl-welcome-content"><div class="sl-welcome-avatar" aria-hidden="true">${esc(String(user.name||'會').slice(0,1))}</div><div class="sl-welcome-copy"><span class="sl-welcome-eyebrow">WELCOME BACK · 歡迎回來</span><h1>你好，${esc(user.name)} <span aria-hidden="true">👋</span></h1><p>${esc(role)} <span class="sl-welcome-dot">·</span> SportLink</p></div></div><div class="sl-welcome-footer"><span>${coach?'管理教學時段，陪伴更多學生前進。':'你的運動旅程，從這裡開始。'}</span><span class="sl-welcome-spark" aria-hidden="true">✦</span></div></section>`;
 }
+
+// 社群第一階段：純介面預覽，不讀取或寫入好友資料，避免誤認已完成雲端功能。
+function slCommunityView(){
+  const sections=[['discover','尋找好友'],['friends','我的好友'],['requests','好友邀請'],['messages','私人訊息'],['forum','運動討論區']];
+  const nav=sections.map(([key,label])=>`<button type="button" class="sl-social-tab ${slCommunityTab===key?'is-active':''}" data-action="social-tab:${key}" aria-pressed="${slCommunityTab===key}">${label}</button>`).join('');
+  let content='';
+  if(slCommunityTab==='discover')content=`<div class="sl-social-content-head"><div><span class="eyebrow">FIND YOUR PEOPLE</span><h2>尋找運動夥伴</h2><p>未來可依暱稱搜尋所有會員，學生與教練都能互相加好友。</p></div></div><label class="sl-social-search-label">搜尋會員暱稱<input class="sl-social-search" placeholder="好友搜尋將於資料庫串接後啟用" disabled aria-describedby="slSocialSearchHelp"></label><p id="slSocialSearchHelp" class="sl-social-hint">目前尚未開放會員搜尋，這裡不會顯示虛構會員。</p><div class="sl-social-feature-grid"><div><span>01</span><strong>搜尋會員</strong><p>依暱稱尋找運動愛好者</p></div><div><span>02</span><strong>送出好友邀請</strong><p>由對方接受後建立關係</p></div><div><span>03</span><strong>一起運動</strong><p>未來串接私訊與零打活動</p></div></div>`;
+  if(slCommunityTab==='friends')content=`<span class="eyebrow">MY CONNECTIONS</span><h2>我的運動好友</h2><div class="sl-social-empty"><span aria-hidden="true">♡</span><h3>好友列表準備中</h3><p>完成 Supabase 好友資料表與權限設定後，這裡會顯示你真正的好友。</p><button class="btn" data-action="social-tab:discover">前往尋找好友 ↗</button></div>`;
+  if(slCommunityTab==='requests')content=`<span class="eyebrow">FRIEND REQUESTS</span><h2>好友邀請</h2><div class="sl-social-empty"><span aria-hidden="true">✉</span><h3>收到與送出的邀請</h3><p>未來可以接受、拒絕或撤回好友邀請，並防止重複邀請。</p></div>`;
+  if(slCommunityTab==='messages')content=`<span class="eyebrow">DIRECT MESSAGES</span><h2>好友私人訊息</h2><div class="sl-social-empty"><span aria-hidden="true">◉</span><h3>即時私訊即將加入</h3><p>規劃包含一對一文字聊天、聊天紀錄、未讀提醒、已讀狀態與封鎖功能。只有互為好友才能私訊。</p></div>`;
+  if(slCommunityTab==='forum')content=`<span class="eyebrow">SPORTS DISCUSSION</span><h2>運動討論區</h2><p class="sl-social-lead">未來公開文章不需登入即可閱讀；登入後可以發文、留言、按讚及收藏。</p><div class="sl-social-categories">${['羽球','健身','籃球','跑步','自行車','游泳','綜合討論'].map(x=>`<span>${x}</span>`).join('')}</div><div class="sl-social-empty"><span aria-hidden="true">▤</span><h3>討論區正在規劃中</h3><p>目前沒有公開文章資料。正式上線前會完成內容檢舉與管理機制。</p></div>`;
+  return `<div class="sl-social-page"><section class="sl-social-hero"><div><span class="sl-social-kicker">SPORTLINK · COMMUNITY</span><h1>運動不只是一堂課，<br><em>也是一群志同道合的人。</em></h1><p>認識運動夥伴、建立好友關係，未來一起分享運動心得與活動。</p><div class="sl-social-hero-meta"><span>運動好友</span><span>一對一私訊</span><span>公開討論區</span></div></div><div class="sl-social-hero-symbol" aria-hidden="true">✳</div></section><div class="sl-social-preview-notice" role="status"><strong>介面預覽階段</strong><span>這一版只開放社群頁面與分頁導覽，好友、私訊和發文尚未連接資料庫。</span></div><div class="sl-social-layout"><nav class="sl-social-tabs" aria-label="社群功能分頁">${nav}</nav><section class="sl-social-panel" aria-live="polite">${content}${!user?'<div class="sl-social-login-tip">想參與社群？先登入 SportLink。<button type="button" data-page="account">登入／註冊 ↗</button></div>':''}</section></div></div>`;
+}
+
 function render(){
   slSyncMemberNav();
   document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
-   if(page==='home')app.innerHTML=`
+   if(page==='community')app.innerHTML=slCommunityView();
+   else if(page==='home')app.innerHTML=`
 <section class="hero sl-home-hero"><div class="hero-copy"><span class="hero-eyebrow"><span class="live-dot"></span> SPORTLINK · FIND YOUR COACH</span><h1>找到對的教練，<br><em>突破每一個可能。</em></h1><p>從尋找教練到安排課程，讓運動變得更簡單。找到適合你的節奏，踏出下一步。</p><div class="hero-actions">${btn('探索專業教練 ↗','go:coaches')}${btn('成為 SportLink 教練 ↗',user?'go:coach-apply':'go:account','btn ghost')}</div><div class="hero-trust"><span>✦ 依地區尋找</span><span>✦ 彈性選擇時段</span><span>✦ 查看教練介紹與評價</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><img class="hero-athlete" src="./athlete.svg" alt="" loading="eager" decoding="async"><div class="hero-spark spark-one">✦</div><div class="hero-spark spark-two">✧</div><div class="floating-note note-one">✦ MOVE BETTER</div><div class="floating-note note-two">YOUR NEXT LEVEL ↗</div></div></section>
 <section class="section sl-home-search" aria-labelledby="slHomeSearchTitle"><div class="sl-home-search-copy"><span class="eyebrow">FIND YOUR COACH</span><h2 id="slHomeSearchTitle">從喜歡的運動開始。</h2><p class="muted">選擇運動項目與授課地區，快速探索適合你的教練。</p></div><form id="slHomeSearchForm" class="sl-home-search-form"><label>運動項目<select id="slHomeSport" name="sport">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select></label><label>授課地區<select id="slHomeArea" name="area">${areaOptions(areaFilter,true)}</select></label><button type="submit" class="btn sl-home-search-button">搜尋教練 ↗</button></form></section>
 <section class="section sl-how-section sl-home-steps" aria-labelledby="slHowTitle"><div class="section-heading"><div><span class="eyebrow">HOW IT WORKS</span><h2 id="slHowTitle">三個步驟，開始你的運動旅程。</h2></div><p class="muted">簡單搜尋、挑選時段、送出預約。</p></div><div class="sl-how-grid"><div class="sl-how-step"><span class="sl-step-number">01</span><span class="sl-home-step-icon" aria-hidden="true">◎</span><h3>找到適合的教練</h3><p>依運動項目、地區和教學介紹挑選。</p></div><div class="sl-how-step"><span class="sl-step-number">02</span><span class="sl-home-step-icon" aria-hidden="true">▦</span><h3>選擇上課時間</h3><p>查看教練開放的時段與課程時長。</p></div><div class="sl-how-step"><span class="sl-step-number">03</span><span class="sl-home-step-icon" aria-hidden="true">✓</span><h3>送出預約申請</h3><p>登入後送出申請，等待教練確認。</p></div></div></section>
@@ -551,6 +567,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.page){document.querySelector('.sl-member-account')?.removeAttribute('open');closeSlMobileMenu();page=b.dataset.page==='account'&&user?'dashboard':b.dataset.page;render();window.scrollTo(0,0);return}
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
+  if(cmd==='social-tab'){if(!['discover','friends','requests','messages','forum'].includes(id))return;slCommunityTab=id;render();return}
   if(cmd==='favorite'){
     if(!user){alert('請先登入才能收藏教練');page='account';render();return}
     if(!favoritesReady){alert('收藏功能尚未啟用，請先執行隨附的 Supabase SQL');return}
