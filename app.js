@@ -15,6 +15,7 @@ const areaOptions=(selected,includeAll=false)=>{
 };
 const initialJobs=[{id:1,sport:'游泳',area:'大安區',date:'2026-11-06',time:'14:00',hours:2,rate:800,detail:'兒童初級游泳課，需具備教學經驗',owner:'示範教練',status:'open'},{id:2,sport:'羽球',area:'中山區',date:'2026-11-08',time:'10:00',hours:2,rate:1100,detail:'成人雙打基礎課程',owner:'示範教練',status:'open'}];
 const SUPABASE_URL='https://szlfgarfcgqtqalvljil.supabase.co';
+const SPORTLINK_VAPID_PUBLIC_KEY='BGc9IixtBx62bwA6tshRj9P07Mu7jlUtbSIIQqbCDCZdEjfNadzV1nMJrgPWk49lxZ3MzyE-ISvJL7JsoSLmLEI';
 const SUPABASE_KEY='sb_publishable_bLDjhYZQGgquuYL8MuYFug__NScOGUB';
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('sl_'+k))??d}catch{return d}};
@@ -373,6 +374,31 @@ function slNoticeStart(){
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)slNoticeRefresh()});
 
+// Web push requires a secure origin and explicit user permission.
+let slPushStatus='';
+const slPushSupported=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+function slPushKeyBytes(key){const raw=atob((key+'='.repeat((4-key.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
+function slPushPanel(){return `<section class="sl-push-settings"><strong>🔔 好友訊息推播</strong><p>iPhone 請先在 Safari 加入主畫面，再從主畫面開啟 SportLink。</p><button type="button" class="btn secondary" data-action="push-enable" ${slPushSupported()?'':'disabled'}>啟用手機通知</button><button type="button" class="btn secondary" data-action="push-disable" ${slPushSupported()?'':'disabled'}>關閉通知</button><p role="status">${esc(slPushStatus||(!slPushSupported()?'此瀏覽器不支援推播通知。':'點擊啟用後，允許裝置通知。'))}</p></section>`}
+async function slPushEnable(){
+ if(!user||!slPushSupported())throw Error('請先登入並確認裝置支援推播');
+ if(await Notification.requestPermission()!=='granted')throw Error('通知權限未允許');
+ const reg=await navigator.serviceWorker.ready;
+ let sub=await reg.pushManager.getSubscription();
+ if(sub){const k=sub.options?.applicationServerKey;if(k){const a=new Uint8Array(k),b=slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY);if(a.length!==b.length||a.some((v,i)=>v!==b[i])){await sub.unsubscribe();sub=null}}}
+ if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY)});
+ const data=sub.toJSON();if(!data.keys?.p256dh||!data.keys?.auth)throw Error('推播訂閱資料不完整');
+ const row={user_id:user.id,endpoint:data.endpoint,p256dh:data.keys.p256dh,auth:data.keys.auth,enabled:true};
+ const found=await supabaseClient.from('sportlink_push_subscriptions').select('id').eq('user_id',user.id).eq('endpoint',data.endpoint).maybeSingle();
+ if(found.error)throw found.error;
+ const result=found.data?await supabaseClient.from('sportlink_push_subscriptions').update(row).eq('id',found.data.id):await supabaseClient.from('sportlink_push_subscriptions').insert(row);
+ if(result.error)throw result.error;
+ slPushStatus='已啟用推播！請使用另一個帳號傳訊息測試。';
+}
+async function slPushDisable(){
+ if(!user)throw Error('請先登入');const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+ if(sub){const result=await supabaseClient.from('sportlink_push_subscriptions').delete().eq('user_id',user.id).eq('endpoint',sub.endpoint);if(result.error)throw result.error;await sub.unsubscribe()}
+ slPushStatus='此裝置已關閉推播通知。';
+}
 let slChatPeer=null,slChatMessages=[],slChatError='',slChatLoading=false,slChatBusy=false;
 let slChatChannel=null,slChatTimer=null,slChatRequest=0;
 function slChatStop(){
@@ -384,7 +410,7 @@ function slChatPanel(){
   if(!user)return '<p>請先登入，才能使用好友私訊。</p>';
   const friends=slChatFriends(),peer=friends.find(x=>x.id===slChatPeer);
   const list=friends.map(x=>`<button type="button" class="sl-chat-person ${x.id===slChatPeer?'active':''}" data-action="chat-open:${esc(x.id)}"><span class="sl-chat-avatar">${esc(x.display_name.slice(0,1))}</span><span class="sl-chat-person-name">${esc(x.display_name)}</span><span class="sl-notice-slot" data-sl-notice="peer" data-peer="${esc(x.id)}" ${slNoticeByPeer[x.id]?'':'hidden'}>${slNoticeBadge(slNoticeByPeer[x.id]||0)}</span></button>`).join('');
-  return `<span class="eyebrow">DIRECT MESSAGES</span><h2>好友私人訊息</h2><p class="sl-chat-help">只有互為好友的會員能傳訊息。離開頁面後，聊天紀錄仍會保存。</p>
+  return `<span class="eyebrow">DIRECT MESSAGES</span><h2>好友私人訊息</h2><p class="sl-chat-help">只有互為好友的會員能傳訊息。離開頁面後，聊天紀錄仍會保存。</p>${slPushPanel()}
     <div class="sl-chat-layout"><aside class="sl-chat-contacts"><strong>我的好友</strong>${list||'<p class="muted">還沒有好友，先到「尋找好友」認識夥伴吧。</p>'}</aside>
     <div class="sl-chat-main">${peer?`<div class="sl-chat-heading"><strong>${esc(peer.display_name)}</strong><span>私人對話</span></div>
     <div class="sl-chat-history" id="slChatHistory" role="log" aria-live="polite">${slChatLoading?'<p class="muted">載入訊息中…</p>':slChatMessages.length?slChatMessages.map(m=>`<div class="sl-chat-bubble ${m.sender_id===user.id?'mine':'theirs'}"><div>${esc(m.body)}</div><time>${esc(new Date(m.created_at).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}))}</time></div>`).join(''):'<p class="sl-chat-empty">還沒有訊息，傳送第一句問候吧！</p>'}</div>
@@ -698,6 +724,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.page){slChatStop();document.querySelector('.sl-member-account')?.removeAttribute('open');closeSlMobileMenu();page=b.dataset.page==='account'&&user?'dashboard':b.dataset.page;render();if(page==='community'&&user)slSocialLoad();window.scrollTo(0,0);return}
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
+  if(cmd==='push-enable'||cmd==='push-disable'){b.disabled=true;try{if(cmd==='push-enable')await slPushEnable();else await slPushDisable()}catch(err){slPushStatus='設定失敗：'+errorText(err)}render();return}
   if(cmd==='social-tab'){if(!['discover','friends','requests','messages','forum'].includes(id))return;slChatStop();slCommunityTab=id;slSocialProfile=null;render();if(user&&['discover','friends','requests','messages'].includes(id))slSocialLoad();return}
   if(cmd==='chat-open'){if(!user||!slChatFriends().some(x=>x.id===id))return;slChatPeer=id;slChatMessages=[];slChatError='';slChatStart();slChatLoad();return}
   if(cmd==='social-close'){slSocialProfile=null;render();return}

@@ -26,3 +26,6 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match(req)));
   }
 });
+
+self.addEventListener('push',event=>{event.waitUntil((async()=>{let data={};try{data=event.data?.json()||{}}catch{}const url=new URL(String(data.url||'/?sl_tab=messages'),self.location.origin);await self.registration.showNotification(String(data.title||'SportLink 新訊息').slice(0,100),{body:String(data.body||'你收到好友訊息').slice(0,200),icon:'/icon-192.png',tag:String(data.tag||'sportlink-message').slice(0,100),data:{url:url.origin===self.location.origin?url.href:self.location.origin+'/?sl_tab=messages'}})})())});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const url=event.notification.data?.url||self.location.origin+'/?sl_tab=messages';const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});const existing=clients.find(c=>new URL(c.url).origin===self.location.origin);if(existing){await existing.focus();if('navigate' in existing)await existing.navigate(url)}else await self.clients.openWindow(url)})())});
