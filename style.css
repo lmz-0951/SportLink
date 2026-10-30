@@ -454,3 +454,64 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 @media(max-width:900px){.sl-home-search{grid-template-columns:1fr}.sl-home-search-form{grid-template-columns:1fr 1fr}.sl-home-search-button{grid-column:1/-1}}
 @media(max-width:650px){.sl-home-search{padding:23px 18px;margin-top:22px;gap:20px;border-radius:20px}.sl-home-search-form{grid-template-columns:1fr;gap:13px}.sl-home-search-button{grid-column:auto;width:100%}.sl-home-steps{margin-top:30px}.sl-home-steps .sl-how-step{padding:22px}.sl-home-featured{margin-top:35px}.sl-home-join-actions{width:100%}.sl-home-join-actions .btn{width:100%;justify-content:center}.sl-home-hero .hero-trust{gap:8px;flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.sl-home-hero .hero-athlete,.sl-home-hero .hero-spark,.sl-home-hero .floating-note{animation:none!important}}
+
+
+/* SportLink Warm Edition · Step 1 · visual-only overrides (2026-10-30)
+   Existing booking, auth, coach and Supabase behavior remains unchanged. */
+:root{--navy:#243037;--blue:#c65a32;--muted:#77716d;--line:#eee1d7;color:#243037;background:#faf7f2}
+body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),radial-gradient(ellipse at 96% 76%,#f5dfd355,transparent 32%),#faf7f2;color:#243037}
+.site-header{background:#fffdf9f2;border-bottom-color:#eee5dd}
+.brand,.foot strong{color:#243037}.brand span,.foot strong span{color:#c65a32}.brand i,.foot strong i{color:#c65a32}
+.nav button{color:#59616a}.nav button.active,.nav-links button:hover,.nav-links button.active{background:#fae8dc;color:#a74320}
+.nav .login{background:#c65a32;color:#fff}.nav .login:hover{background:#a94323;color:#fff}
+.sl-member-trigger{background:#fae8dc;color:#963c20;border:1px solid #f1d5c4;box-shadow:0 7px 22px #b96b4120}
+.sl-member-trigger:hover{background:#f8dac7}.sl-member-initial{background:#f6c8ae;color:#9d3f1f}
+.sl-member-popover{background:#fffdf9;border-color:#f0e2d8;box-shadow:0 18px 50px #65402a22}
+.sl-member-popover-head{color:#9d482b;border-bottom-color:#f0e2d8}.sl-member-role{color:#82716b}
+.nav .sl-member-popover button{color:#4a3e3a}.nav .sl-member-popover button:hover{background:#fff0e5}
+.nav .sl-member-popover .sl-member-logout{color:#b34e2d;border-top-color:#f0e2d8}
+/* Home hero: warm light editorial treatment, keep original headline and illustration */
+.hero.sl-home-hero{background:radial-gradient(circle at 80% 40%,#f5c7a994 0%,transparent 45%),linear-gradient(118deg,#fffdf9 0%,#fff1e4 53%,#f5d9c6 100%);color:#243037;border:1px solid #f0ddcf;box-shadow:0 22px 55px #81583d15}
+.sl-home-hero:before{background-image:radial-gradient(#b77b5c25 1px,transparent 1px)}
+.sl-home-hero:after{background:radial-gradient(ellipse,#e9a87944,transparent 70%)}
+.sl-home-hero .hero-eyebrow{color:#9c4a2b;background:#ffffff9e;border-color:#dfbda7}
+.sl-home-hero .live-dot{background:#d0784b;box-shadow:0 0 0 4px #d0784b25}
+.sl-home-hero h1,.sl-home-hero h1 strong{color:#243037}.sl-home-hero h1 em{color:#c65a32}
+.sl-home-hero p{color:#635e5a}.sl-home-hero .hero-trust{color:#8a7163}
+.sl-home-hero .hero-orbit{border-color:#c88c6b55}.sl-home-hero .hero-spark{color:#d28a5d;text-shadow:0 0 20px #e8b18e}
+.sl-home-hero .floating-note{background:#fffdf9c7;color:#a65a37;border:1px solid #ebc8b1;box-shadow:0 9px 25px #aa765222}
+.sl-home-search{background:linear-gradient(120deg,#fffaf5,#faeee5);border-color:#efdfd1;box-shadow:0 10px 30px #8c553512}
+.sl-home-search h2,.sl-home-search-form label{color:#543b31}
+.sl-home-search-form select{border-color:#ead8c9;background:#fffdfa;color:#443a36}
+.sl-home-steps .sl-how-step{background:#fffdfa;border-color:#eee0d6}
+.sl-home-join{background:linear-gradient(110deg,#fff0e2,#f8dfcf);border-color:#ebd2c1}
+/* Member center: warm greeting banner in place of forest green */
+.sl-welcome-card{background:radial-gradient(circle at 90% 22%,#f4c5a8 0%,transparent 35%),linear-gradient(120deg,#fffdf9 0%,#fff3e8 55%,#f6d9c4 100%);border:1px solid #ecd8c8;color:#243037;box-shadow:0 18px 42px #966b4c1c}
+.sl-welcome-card:after{border-color:#b96e4430;box-shadow:0 0 0 55px #c9794c0c}
+.sl-welcome-avatar{background:#f6c9ad;border:2px solid #fffaf4;color:#9c4526}
+.sl-welcome-eyebrow{color:#bd6039}.sl-welcome-copy h1{color:#243037}.sl-welcome-copy p{color:#665f5a}
+.sl-welcome-dot{color:#c7774d}.sl-welcome-footer{border-top-color:#d9bfae;color:#59463b}.sl-welcome-spark{color:#c65a32}
+.sl-tools-label{color:#796b61}.sl-dashboard-tools .btn{box-shadow:none}
+/* Global surfaces and action colors */
+.card,.item,.panel,.sl-student-dashboard,.sl-calendar-card,.sl-favorites-card{border-color:#eee1d7}
+.section h2,.card h3,.sl-home-search h2{color:#243037}
+.btn.primary,.btn:not(.ghost):not(.secondary),button.btn.primary{background:#c65a32;color:#fff;border-color:#c65a32}
+.btn.primary:hover,.btn:not(.ghost):not(.secondary):hover{background:#ad4927;border-color:#ad4927}
+.btn.secondary,.tabs button{background:#fae8dc;color:#a44928}
+.tabs button.active{background:#c65a32;color:#fff}
+.sl-next-class{background:linear-gradient(115deg,#9d4a2c,#cf764b)!important}
+.sl-next-class:after{border-color:#ffffff35}
+.sl-student-dashboard{background:linear-gradient(145deg,#fffdf9,#fff5ed)}
+.sl-calendar-day.selected{background:#c65a32;color:#fff}
+.sl-calendar-nav button{background:#fff0e5;border-color:#eed9c8;color:#9c4b2b}
+.sl-fav-info{color:#4a3e38}.sl-widget-title h3{color:#423b36}
+.sl-demo-details{color:#5b463a;border-color:#efddcf;background:#fffaf5}
+.sl-demo-details p{color:#7d6d63}
+:focus-visible{outline-color:#c65a32}
+@media(max-width:700px){
+  .hero.sl-home-hero{padding:36px 24px}
+  .sl-home-hero .floating-note{background:#fffaf2d9}
+  .nav .sl-mobile-menu-toggle{background:#fff0e6;color:#9c4a2b;border-color:#ecd2bf}
+  .nav-links{border-top-color:#eee1d7}
+  .sl-welcome-card{padding:22px 19px 18px}
+}
