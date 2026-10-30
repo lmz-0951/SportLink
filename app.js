@@ -399,6 +399,28 @@ async function slPushDisable(){
  if(sub){const result=await supabaseClient.from('sportlink_push_subscriptions').delete().eq('user_id',user.id).eq('endpoint',sub.endpoint);if(result.error)throw result.error;await sub.unsubscribe()}
  slPushStatus='此裝置已關閉推播通知。';
 }
+// Open a specific friend conversation from a trusted, same-origin push link.
+function slPushDeepLinkPeer(){
+  const params=new URLSearchParams(location.search);
+  const peer=params.get('sl_peer');
+  return params.get('sl_tab')==='messages' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(peer||'') ? peer : null;
+}
+async function slHandlePushDeepLink(){
+  const params=new URLSearchParams(location.search);
+  if(params.get('sl_tab')!=='messages')return;
+  if(!user)return; // Keep the link until the member logs in.
+  const peer=slPushDeepLinkPeer();
+  page='community';slCommunityTab='messages';slSocialProfile=null;
+  await slSocialLoad();
+  if(peer && slChatFriends().some(friend=>friend.id===peer)){
+    if(slChatPeer!==peer){slChatPeer=peer;slChatMessages=[];slChatError='';slChatStart()}
+    await slChatLoad();
+  }
+  render();
+  history.replaceState(null,'',location.pathname+location.hash);
+}
+window.addEventListener('popstate',()=>{slHandlePushDeepLink().catch(console.error)});
+window.addEventListener('pageshow',()=>{slHandlePushDeepLink().catch(console.error)});
 let slChatPeer=null,slChatMessages=[],slChatError='',slChatLoading=false,slChatBusy=false;
 let slChatChannel=null,slChatTimer=null,slChatRequest=0;
 function slChatStop(){
@@ -559,7 +581,7 @@ function render(){
    }
    else if(page==='account'){
      app.innerHTML=`<section class="sl-auth-wrap"><div class="sl-auth-card"><div class="sl-auth-intro"><span class="sl-auth-eyebrow">WELCOME BACK</span><h1>歡迎回到 SportLink</h1><p>登入帳號，繼續你的運動旅程。</p></div>${user?`<p class="notice">目前登入：${esc(user.name)}（${esc(user.role)}）${admin?' · 平台管理員':''}</p>${btn('登出','logout','btn secondary')}`:`<form class="form sl-auth-form" id="accountForm"><label>電子郵件<input name="email" type="email" autocomplete="username" inputmode="email" placeholder="example@email.com" required></label><label>密碼（至少 6 碼）<span class="sl-password-field"><input name="password" id="accountPassword" type="password" minlength="6" autocomplete="current-password" placeholder="請輸入密碼" required><button type="button" class="sl-password-toggle" data-action="toggle-password" aria-label="顯示密碼" aria-controls="accountPassword" aria-pressed="false">顯示</button></span></label><div id="signupFields" hidden><label>顯示名稱<input name="name" maxlength="30" autocomplete="nickname" placeholder="你的暱稱"></label><label>主要身分<select name="role"><option value="student">學生</option><option value="coach">教練</option></select></label></div><button type="button" class="sl-text-button" data-action="forgot-password" id="forgotPasswordButton">忘記密碼？</button><button class="btn sl-auth-submit" type="submit" id="authSubmit">登入 SportLink</button><div class="sl-auth-switch"><span id="authSwitchPrompt">還沒有帳號嗎？</span><button type="button" data-action="toggle-signup" class="sl-auth-switch-btn">立即註冊</button></div><p class="sl-auth-hint">可使用瀏覽器或 iPhone 密碼管理員儲存密碼；登入狀態會持續保留，直到登出或工作階段失效。</p><p id="authMessage" class="sl-auth-message" role="status" aria-live="polite"></p></form>`}</div></section>`;
-    const form=app.querySelector('#accountForm');if(form)form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('#authSubmit'),message=form.querySelector('#authMessage'),signup=!form.querySelector('#signupFields').hidden,f=new FormData(form);submit.disabled=true;message.textContent='處理中…';try{let result;if(signup){const name=String(f.get('name')||'').trim();if(!name)throw Error('請填寫顯示名稱');result=await supabaseClient.auth.signUp({email:String(f.get('email')),password:String(f.get('password')),options:{emailRedirectTo:location.origin,data:{display_name:name,role:String(f.get('role'))}}})}else result=await supabaseClient.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(result.error)throw result.error;if(signup&&!result.data.session){message.textContent='註冊申請已送出。請先完成 Email 驗證，再登入。';return}await refreshAuthUser();page='dashboard';await reload()}catch(err){message.textContent='操作失敗：'+errorText(err)}finally{submit.disabled=false}};
+    const form=app.querySelector('#accountForm');if(form)form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('#authSubmit'),message=form.querySelector('#authMessage'),signup=!form.querySelector('#signupFields').hidden,f=new FormData(form);submit.disabled=true;message.textContent='處理中…';try{let result;if(signup){const name=String(f.get('name')||'').trim();if(!name)throw Error('請填寫顯示名稱');result=await supabaseClient.auth.signUp({email:String(f.get('email')),password:String(f.get('password')),options:{emailRedirectTo:location.origin,data:{display_name:name,role:String(f.get('role'))}}})}else result=await supabaseClient.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(result.error)throw result.error;if(signup&&!result.data.session){message.textContent='註冊申請已送出。請先完成 Email 驗證，再登入。';return}await refreshAuthUser();page='dashboard';await reload();await slHandlePushDeepLink()}catch(err){message.textContent='操作失敗：'+errorText(err)}finally{submit.disabled=false}};
   }
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
@@ -844,6 +866,7 @@ render();
 refreshAuthUser().then(async()=>{
   await reload();slNoticeStart();
   if(new URLSearchParams(location.search).get('auth')==='recovery')await handlePasswordRecovery();
+  else await slHandlePushDeepLink();
 }).catch(e=>{console.error('SportLink auth startup:',e);showConnectionNotice('登入狀態讀取失敗：'+errorText(e))});
 
 // 社群搜尋使用表單送出，避免每次輸入都查詢資料庫。

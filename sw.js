@@ -1,5 +1,5 @@
 /* SportLink PWA V1: offline shell only; never cache Supabase or authenticated API data. */
-const CACHE = 'sportlink-shell-v4';
+const CACHE = 'sportlink-shell-v5';
 const SHELL = ['/', '/index.html', '/style.css', '/design-slate-orange.css', '/athlete.svg', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
