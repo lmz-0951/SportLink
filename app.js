@@ -147,10 +147,43 @@ function bookingCard(b){
 }
 // Archive completed/cancelled/rejected bookings without deleting any records.
 const slArchivedStatuses=new Set(['completed','cancelled','rejected']);
-function slBookingSection(title,items,emptyText,archiveId){
+function slBookingSection(title,items,emptyText,archiveId,mode='student'){
   const current=items.filter(b=>!slArchivedStatuses.has(b.status));
   const history=items.filter(b=>slArchivedStatuses.has(b.status));
-  return `<section class="section sl-booking-section"><h2>${title}</h2><div class="list">${current.map(bookingCard).join('')||`<div class="item muted">${emptyText}</div>`}</div><details class="sl-history" id="${archiveId}"><summary>歷史預約紀錄 <span class="sl-history-count">${history.length} 筆</span></summary><div class="sl-history-inner"><label class="sl-history-label" for="${archiveId}-date">依上課日期查詢</label><div class="sl-history-controls"><input id="${archiveId}-date" type="date" class="field sl-history-date" data-history-date="${archiveId}"><button type="button" class="btn secondary" data-history-clear="${archiveId}">清除日期</button></div><p class="muted small">依課程日期篩選；點開紀錄可查看預約詳情。</p><div class="sl-history-results" id="${archiveId}-results">${slHistoryCards(history,'')}</div></div></details></section>`;
+  const coachMode=mode==='coach';
+  const pending=current.filter(b=>b.status==='pending').length;
+  const accepted=current.filter(b=>b.status==='accepted').length;
+  const summary=coachMode?`<div class="sl-board-stats"><div><small>進行中預約</small><strong>${current.length}</strong></div><div><small>待確認</small><strong>${pending}</strong></div><div><small>已接受</small><strong>${accepted}</strong></div></div><div class="sl-board-filters" role="group" aria-label="篩選學生預約"><button type="button" class="sl-board-filter is-active" data-board-filter="all" aria-pressed="true">全部</button><button type="button" class="sl-board-filter" data-board-filter="pending" aria-pressed="false">待確認</button><button type="button" class="sl-board-filter" data-board-filter="accepted" aria-pressed="false">已接受</button></div>`:'';
+  const cards=current.map(b=>{
+    const duration=Number(b.duration_minutes)||60;
+    const start=slMins(b.lesson_time);
+    const end=slTime(start+duration);
+    const day=String(b.lesson_date||'');
+    const dateText=day.slice(5).replace('-','/');
+    return `<div class="sl-board-entry" data-board-status="${esc(b.status)}"><div class="sl-board-date"><strong>${esc(dateText)}</strong><small>${esc(day.slice(0,4))}</small></div><div class="sl-board-card">${bookingCard(b).replace('class="item"','class="item sl-board-booking"')}<div class="sl-board-meta">${esc(String(b.lesson_time).slice(0,5))}–${esc(end)} · ${esc(slDurationLabel(duration))}</div></div></div>`;
+  }).join('');
+  return `<section class="section sl-booking-section ${coachMode?'sl-coach-board':'sl-student-board'}" id="${archiveId}-section"><div class="sl-board-heading"><span class="eyebrow">${coachMode?'COACH BOOKING BOARD':'MY LESSONS'}</span><h2>${title}</h2><p class="muted">${coachMode?'快速查看學生預約，優先處理待確認課程。':'查看自己的課程時間、預約狀態與歷史紀錄。'}</p></div>${summary}<div class="sl-board-list">${cards||`<div class="item muted">${emptyText}</div>`}</div><div class="sl-board-no-results hidden">這個分類目前沒有預約。</div><details class="sl-history" id="${archiveId}"><summary>歷史預約紀錄 <span class="sl-history-count">${history.length} 筆</span></summary><div class="sl-history-inner"><label class="sl-history-label" for="${archiveId}-date">依上課日期查詢</label><div class="sl-history-controls"><input id="${archiveId}-date" type="date" class="field sl-history-date" data-history-date="${archiveId}"><button type="button" class="btn secondary" data-history-clear="${archiveId}">清除日期</button></div><p class="muted small">依課程日期篩選；點開紀錄可查看預約詳情。</p><div class="sl-history-results" id="${archiveId}-results">${slHistoryCards(history,'')}</div></div></details></section>`;
+}
+// Student dashboard: distinct course overview, using only live booking records.
+function slStudentDashboard(items){
+  const active=items.filter(b=>!slArchivedStatuses.has(b.status));
+  const accepted=active.filter(b=>b.status==='accepted');
+  const pending=active.filter(b=>b.status==='pending');
+  const archived=items.filter(b=>slArchivedStatuses.has(b.status));
+  const completed=archived.filter(b=>b.status==='completed');
+  const now=Date.now();
+  const upcoming=accepted.filter(b=>new Date(`${b.lesson_date}T${String(b.lesson_time).slice(0,8)}`).getTime()>=now).sort((a,b)=>String(a.lesson_date+a.lesson_time).localeCompare(String(b.lesson_date+b.lesson_time)));
+  const otherAccepted=accepted.filter(b=>!upcoming.includes(b));
+  const groups=[['upcoming','即將上課',upcoming,'目前沒有即將開始的課程。'],['pending','待確認',pending,'目前沒有待教練確認的預約。'],['other','已接受',otherAccepted,'沒有其他已接受的課程。']];
+  const entry=b=>{
+    const date=String(b.lesson_date||'');
+    const duration=Number(b.duration_minutes)||60;
+    const start=slMins(b.lesson_time);
+    const month=Number(date.slice(5,7));
+    const day=Number(date.slice(8,10));
+    return `<article class="sl-student-lesson"><div class="sl-student-date"><small>${month}月</small><strong>${day}</strong><span>${esc(String(b.lesson_time).slice(0,5))}</span></div><div class="sl-student-lesson-main"><div class="sl-student-lesson-top"><strong>${esc(b.coaches?.sport||'運動')}私人課程</strong><span class="sl-student-status sl-status-${esc(b.status)}">${statusLabel[b.status]||esc(b.status)}</span></div><p class="sl-student-coach">${esc(b.coaches?.display_name||'教練')} · ${esc(String(b.lesson_time).slice(0,5))}–${esc(slTime(start+duration))}</p><div class="sl-student-lesson-bottom"><span>◷ ${esc(slDurationLabel(duration))}</span><details class="sl-student-detail"><summary>課程詳情</summary>${bookingCard(b)}</details></div></div></article>`;
+  };
+  return `<section class="section sl-student-dashboard" id="sl-my-history-section"><div class="sl-student-head"><div><span class="eyebrow">MY SPORT DASHBOARD</span><h2>我的運動課程</h2><p>上課安排、待確認預約與課程紀錄，一眼就能掌握。</p></div><div class="sl-student-head-icon" aria-hidden="true">▦</div></div><div class="sl-student-stats"><div><small>即將上課</small><strong>${upcoming.length}</strong><span>堂課</span></div><div><small>待確認</small><strong>${pending.length}</strong><span>筆預約</span></div><div><small>已完成</small><strong>${completed.length}</strong><span>堂課</span></div></div><div class="sl-student-tabs" role="group" aria-label="篩選我的課程"><button type="button" class="sl-student-tab is-active" data-student-tab="upcoming" aria-pressed="true">即將上課</button><button type="button" class="sl-student-tab" data-student-tab="pending" aria-pressed="false">待確認</button><button type="button" class="sl-student-tab" data-student-tab="history" aria-pressed="false">歷史紀錄</button></div><div class="sl-student-panels">${groups.map(([key,title,list,empty])=>`<div class="sl-student-panel ${key==='upcoming'?'':'hidden'}" data-student-panel="${key}"><h3>${title}</h3>${list.length?list.map(entry).join(''):`<div class="sl-student-empty">${empty}</div>`}</div>`).join('')}<div class="sl-student-panel hidden" data-student-panel="history"><h3>歷史課程</h3><p class="muted small">已完成、取消或拒絕的預約都保留在這裡。</p><label class="sl-history-label" for="sl-my-history-date">依上課日期查詢</label><div class="sl-history-controls"><input id="sl-my-history-date" type="date" class="field sl-history-date" data-history-date="sl-my-history"><button type="button" class="btn secondary" data-history-clear="sl-my-history">清除日期</button></div><div class="sl-history-results" id="sl-my-history-results">${slHistoryCards(archived,'')}</div></div></div>${otherAccepted.length?`<details class="sl-student-other"><summary>其他已接受課程（${otherAccepted.length}）</summary>${otherAccepted.map(entry).join('')}</details>`:''}</section>`;
 }
 function slHistoryCards(history,date){
   const found=history.filter(b=>!date||b.lesson_date===date);
@@ -161,14 +194,14 @@ function coachEditPanel(){
   const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
   
   const choiceOptions=(values,selected)=>values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
-  return `<div class="section"><h2>教練大頭照</h2>
+  return `<section class="section sl-coach-profile"><div class="sl-board-heading"><span class="eyebrow">COACH PROFILE</span><h2>教練資料管理</h2><p class="muted">需要修改時再展開對應項目，讓管理頁面更簡潔。</p></div><details class="sl-profile-fold"><summary><span>📷　教練大頭照</span><small>查看或更換公開照片</small></summary><div class="sl-profile-body"><h2>教練大頭照</h2>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:12px 0">${photoAvatar(coachProfile,true)}
       <form id="coachPhotoForm" class="form" style="flex:1;min-width:220px">
         <label>選擇照片（JPG、PNG、WebP，最多 5 MB）<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
         <button class="btn" type="submit">上傳 / 更換大頭照</button>
         <p class="muted small" id="coachPhotoMessage" role="status">照片公開顯示，請勿上傳證件或私人資訊。</p>
-      </form></div></div>
-    <div class="section"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
+      </form></div></div></details>
+    <details class="sl-profile-fold"><summary><span>👤　基本教練資料</span><small>名稱、運動、地區、價格與介紹</small></summary><div class="sl-profile-body"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
     <form class="form" id="coachEditForm">
       <label>公開顯示名稱<input name="display_name" maxlength="60" required value="${esc(coachProfile.display_name)}"></label>
       <label>運動項目<select name="sport" required>${choiceOptions(sportChoices,coachProfile.sport)}</select></label>
@@ -176,8 +209,8 @@ function coachEditPanel(){
       <label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" step="1" required value="${esc(coachProfile.price)}"></label>
       <label>教學介紹<textarea name="description" maxlength="1000" required>${esc(coachProfile.description)}</textarea></label>
       <button class="btn" type="submit">儲存教練資料</button>
-    </form></div>
-    <div class="section"><h2>教學資歷與專業證照</h2>
+    </form></div></details>
+    <details class="sl-profile-fold"><summary><span>🎓　教學資歷與專業證照</span><small>年資、經歷、證照及私人照片</small></summary><div class="sl-profile-body"><h2>教學資歷與專業證照</h2>
       <p class="muted">年資、經歷及證照名稱會公開顯示；證照照片保存在私人空間。</p>
       <form class="form" id="coachCredentialsForm">
         <label>教學年資（年）<input name="teaching_years" type="number" min="0" max="80" step="1" required value="${esc(coachProfile.teaching_years??0)}"></label>
@@ -190,7 +223,7 @@ function coachEditPanel(){
         <button class="btn secondary" type="submit">上傳 / 更換證照照片</button>
         <p class="muted small" id="certificateMessage" role="status">${coachProfile.certificate_path?'已儲存證照照片（不公開）':'尚未上傳證照照片。'}</p>
       </form>
-    </div>`;
+    </div></details></section>`;
 }
 function availabilityPanel(){
  if(!coachProfile)return '';
@@ -299,7 +332,23 @@ function render(){
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div>${slBookingSection('我提出的預約',mine,'目前沒有進行中的預約。','sl-my-history')}${coachProfile?`<div class="section"><h2>我的教練資料</h2><p class="notice">${esc(coachProfile.display_name)} · ${coachProfile.is_active?'已核准上架':'等待管理員審核'}</p>${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history')}</div>${coachEditPanel()}${availabilityPanel()}`:''}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.innerHTML=`<h1>你好，${esc(user.name)} 👋</h1><p class="muted">目前身分：${esc(user.role)}${admin?' · 平台管理員':''}</p><div class="tabs">${btn('重新整理預約','reload','btn secondary')}${admin?btn('平台管理後台','go:admin'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('代課示範區','go:substitutions','btn secondary')}</div>${coachProfile?`${availabilityPanel()}${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history','coach')}${coachEditPanel()}${slStudentDashboard(mine)}`:slStudentDashboard(mine)}<div class="section"><h2>代課功能</h2><p class="muted">代課媒合仍是本機示範，尚未雲端同步。</p></div>`;
+    app.querySelectorAll('.sl-board-filters').forEach(group=>group.addEventListener('click',e=>{
+      const button=e.target.closest('[data-board-filter]');if(!button)return;
+      const filter=button.dataset.boardFilter;
+      const section=group.closest('.sl-booking-section');
+      group.querySelectorAll('[data-board-filter]').forEach(b=>{const selected=b===button;b.classList.toggle('is-active',selected);b.setAttribute('aria-pressed',String(selected));});
+      let shown=0;
+      section.querySelectorAll('.sl-board-entry').forEach(entry=>{const visible=filter==='all'||entry.dataset.boardStatus===filter;entry.classList.toggle('hidden',!visible);if(visible)shown++;});
+      section.querySelector('.sl-board-no-results')?.classList.toggle('hidden',shown!==0);
+    }));
+    app.querySelectorAll('.sl-student-tabs').forEach(group=>group.addEventListener('click',e=>{
+      const button=e.target.closest('[data-student-tab]');if(!button)return;
+      const tab=button.dataset.studentTab;
+      const section=group.closest('.sl-student-dashboard');
+      group.querySelectorAll('[data-student-tab]').forEach(b=>{const selected=b===button;b.classList.toggle('is-active',selected);b.setAttribute('aria-pressed',String(selected));});
+      section.querySelectorAll('[data-student-panel]').forEach(panel=>panel.classList.toggle('hidden',panel.dataset.studentPanel!==tab));
+    }));
     const coachPhotoForm=app.querySelector('#coachPhotoForm');
     if(coachPhotoForm)coachPhotoForm.onsubmit=async e=>{
       e.preventDefault();
