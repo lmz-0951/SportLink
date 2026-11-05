@@ -148,11 +148,11 @@ function bookingCard(b){
   // lesson_date / lesson_time are Taiwan local calendar values in this project.
   const lessonStart=new Date(`${b.lesson_date}T${String(b.lesson_time).slice(0,8)}`);
   const lessonEnd=new Date(lessonStart.getTime()+(Number(b.duration_minutes)||60)*60000);
-  const canCancel=isStudent&&['pending','accepted'].includes(b.status)&&Number.isFinite(lessonStart.getTime())&&lessonStart.getTime()-Date.now()>=24*60*60*1000;
+  const canCancel=(isStudent&&b.status==='pending')||(owned&&b.status==='accepted');
   const canComplete=owned&&b.status==='accepted'&&Number.isFinite(lessonEnd.getTime())&&lessonEnd.getTime()<=Date.now();
   const canReview=isStudent&&!coachProfile&&user?.role!=='coach'&&b.status==='completed'&&!myReviews.some(r=>r.booking_id===b.id);
   const reviewed=isStudent&&b.status==='completed'&&myReviews.some(r=>r.booking_id===b.id);
-  const cancelInfo=isStudent&&['pending','accepted'].includes(b.status)&&!canCancel?'<p class="muted small">距離上課不足 24 小時，無法自行取消，請聯絡教練。</p>':'';
+  const cancelInfo=isStudent&&b.status==='accepted'&&!owned?'<p class="muted small">教練已接受預約，如需取消請聯絡教練。</p>':'';
   return `<div class="item"><div class="row"><b>${esc(sport)} · ${esc(coachName)}</b><span class="pill">${statusLabel[b.status]||esc(b.status)}</span></div><p class="muted">${esc(b.lesson_date)} ${esc(String(b.lesson_time).slice(0,5))}～${esc(slClock(lessonEnd))} · ${esc((Number(b.duration_minutes)||60)/60)} 小時 · 預約編號 ${esc(b.id.slice(0,8))}</p><p>${esc(b.note)}</p>${b.status==='pending'&&owned?btn('接受預約','booking-accept:'+b.id)+' '+btn('拒絕預約','booking-reject:'+b.id,'btn secondary'):''}${canCancel?btn('取消預約','booking-cancel:'+b.id,'btn secondary'):''}${canComplete?btn('標記課程完成','booking-complete:'+b.id,'btn secondary'):''}${canReview?btn('評價教練（自願）','review:'+b.id,'btn secondary'):''}${reviewed?'<p class="muted small">已提交評價，無法修改或刪除。</p>':''}${cancelInfo}</div>`;
 }
 // Archive completed/cancelled/rejected bookings without deleting any records.
@@ -791,7 +791,7 @@ document.addEventListener('click',async e=>{
      return;
    }if(cmd==='booking-accept'||cmd==='booking-reject'||cmd==='booking-cancel'){
     if(!user)return;const action=cmd.slice(8);if(!confirm(action==='accept'?'確定接受這筆預約？':action==='reject'?'確定拒絕這筆預約？':'確定取消預約？'))return;
-    b.disabled=true;try{const {data,error}=await supabaseClient.rpc('sportlink_change_booking_status',{p_booking_id:id,p_action:action});if(error)throw error;if(!data)throw Error(action==='cancel'?'無法取消：可能距離上課不足 24 小時，或預約狀態已變更。':'沒有權限或預約已經處理');await reload()}catch(err){alert('操作失敗：'+errorText(err));b.disabled=false}return;
+    b.disabled=true;try{const {data,error}=await supabaseClient.rpc('sportlink_change_booking_status',{p_booking_id:id,p_action:action});if(error)throw error;if(!data)throw Error(action==='cancel'?'無法取消：預約狀態已變更或沒有取消權限。':'沒有權限或預約已經處理');await reload()}catch(err){alert('操作失敗：'+errorText(err));b.disabled=false}return;
   }
   if(cmd==='admin-coach'){
     if(!admin)return;if(!confirm(extra==='true'?'確定核准這位教練上架？':'確定下架這位教練？'))return;
