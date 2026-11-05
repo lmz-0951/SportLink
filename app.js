@@ -13,15 +13,25 @@ const areaOptions=(selected,includeAll=false)=>{
   if(current&&!values.includes(current))values.push(current);
   return values.map(v=>`<option value="${esc(v)}" ${v===(includeAll?(selected||'全部'):current)?'selected':''}>${esc(v)}</option>`).join('');
 };
-const initialJobs=[{id:1,sport:'游泳',area:'大安區',date:'2026-11-06',time:'14:00',hours:2,rate:800,detail:'兒童初級游泳課，需具備教學經驗',owner:'示範教練',status:'open'},{id:2,sport:'羽球',area:'中山區',date:'2026-11-08',time:'10:00',hours:2,rate:1100,detail:'成人雙打基礎課程',owner:'示範教練',status:'open'}];
+const initialJobs=[{id:2,sport:'羽球',area:'中山區',date:'2026-11-08',time:'10:00',hours:2,rate:1100,detail:'成人雙打基礎課程',owner:'示範教練',status:'open'}];
 const SUPABASE_URL='https://szlfgarfcgqtqalvljil.supabase.co';
 const SPORTLINK_VAPID_PUBLIC_KEY='BGc9IixtBx62bwA6tshRj9P07Mu7jlUtbSIIQqbCDCZdEjfNadzV1nMJrgPWk49lxZ3MzyE-ISvJL7JsoSLmLEI';
 const SUPABASE_KEY='sb_publishable_bLDjhYZQGgquuYL8MuYFug__NScOGUB';
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem('sl_'+k))??d}catch{return d}};
 const save=(k,v)=>localStorage.setItem('sl_'+k,JSON.stringify(v));
-let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',sportFilter='全部',areaFilter='全部';
+let user=null,admin=false,coachProfile=null,liveCoaches=[],bookings=[],page='home',areaFilter='全部';
 let jobs=load('jobs',initialJobs),applications=load('applications',[]);
+const storedJobs=jobs;
+const nonBadmintonJobIds=new Set(Array.isArray(storedJobs)?storedJobs.filter(j=>j?.sport&&j.sport!=='羽球').map(j=>String(j.id)):[]);
+jobs=Array.isArray(storedJobs)?storedJobs.filter(j=>!j?.sport||j.sport==='羽球'):initialJobs;
+if(!Array.isArray(storedJobs)||jobs.length!==storedJobs.length)save('jobs',jobs);
+const storedApplications=applications;
+applications=Array.isArray(storedApplications)?storedApplications.filter(a=>{
+  if(nonBadmintonJobIds.has(String(a?.jobId)))return false;
+  return !a?.sport||a.sport==='羽球';
+}):[];
+if(!Array.isArray(storedApplications)||applications.length!==storedApplications.length)save('applications',applications);
 let slCommunityTab='discover';
 let availabilitySlots=[],availabilityError='',coachReviews=[],myReviews=[];
 let publicOpenBlocks=[],publicBusyBlocks=[],bookingUiVersion=0;
@@ -80,7 +90,7 @@ const coachCard=c=>`<div class="card coach-card"><div class="card-top">${photoAv
 const jobCard=j=>`<div class="card"><div class="row"><span class="pill">${esc(j.sport)}代課</span><b class="price">NT$${Number(j.rate).toLocaleString()} / 小時</b></div><h3>${esc(fullArea(j.area))} · ${esc(j.date)}</h3><p class="muted">${esc(j.time)} 開始 · ${esc(j.hours)} 小時</p><p>${esc(j.detail)}</p><div class="row"><span class="muted">${j.status==='open'?'招募中':'已媒合'}</span>${btn('查看 / 申請','job:'+j.id,'btn secondary')}</div></div>`;
 const allCoaches=()=>liveCoaches;
 async function refreshData(){
-  const {data:publicCoaches,error:ce}=await retryRead(()=>supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url,teaching_years,teaching_experience,certificate_name').eq('is_active',true).order('created_at',{ascending:false}));
+  const {data:publicCoaches,error:ce}=await retryRead(()=>supabaseClient.from('coaches').select('id,user_id,display_name,sport,area,price,description,is_active,photo_url,teaching_years,teaching_experience,certificate_name').eq('is_active',true).eq('sport','羽球').order('created_at',{ascending:false}));
   if(ce)throw ce;liveCoaches=publicCoaches||[];
   const {data:reviews,error:re}=await retryRead(()=>supabaseClient.from('coach_reviews').select('booking_id,coach_id,rating,comment,created_at').order('created_at',{ascending:false}));
   if(re)throw re;coachReviews=reviews||[];
@@ -225,9 +235,6 @@ function slHistoryCards(history,date){
 }
 function coachEditPanel(){
   if(!coachProfile)return '';
-  const sportChoices=[...new Set([coachProfile.sport,'游泳','羽球','健身','籃球'])];
-  
-  const choiceOptions=(values,selected)=>values.map(v=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(v)}</option>`).join('');
   return `<section class="section sl-coach-profile"><div class="sl-board-heading"><span class="eyebrow">COACH PROFILE</span><h2>教練資料管理</h2><p class="muted">需要修改時再展開對應項目，讓管理頁面更簡潔。</p></div><details class="sl-profile-fold"><summary><span>📷　教練大頭照</span><small>查看或更換公開照片</small></summary><div class="sl-profile-body"><h2>教練大頭照</h2>
     <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:12px 0">${photoAvatar(coachProfile,true)}
       <form id="coachPhotoForm" class="form" style="flex:1;min-width:220px">
@@ -238,7 +245,7 @@ function coachEditPanel(){
     <details class="sl-profile-fold"><summary><span>👤　基本教練資料</span><small>名稱、運動、地區、價格與介紹</small></summary><div class="sl-profile-body"><h2>編輯教練資料</h2><p class="muted">修改後會同步更新公開的教練介紹，不會影響平台審核狀態。</p>
     <form class="form" id="coachEditForm">
       <label>公開顯示名稱<input name="display_name" maxlength="60" required value="${esc(coachProfile.display_name)}"></label>
-      <label>運動項目<select name="sport" required>${choiceOptions(sportChoices,coachProfile.sport)}</select></label>
+      <label>運動項目<input value="羽球" readonly></label>
       <label>授課地區（雙北及桃園）<select name="area" required>${areaOptions(coachProfile.area)}</select></label>
       <label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" step="1" required value="${esc(coachProfile.price)}"></label>
       <label>教學介紹<textarea name="description" maxlength="1000" required>${esc(coachProfile.description)}</textarea></label>
@@ -483,7 +490,7 @@ function slCommunityView(){
   if(slCommunityTab==='friends')content=`<span class="eyebrow">MY CONNECTIONS</span><h2>我的運動好友</h2>${slSocialList(slSocialRows.filter(x=>x.relation==='accepted'),'目前還沒有好友，先去尋找運動夥伴吧！')}`;
   if(slCommunityTab==='requests')content=`<span class="eyebrow">FRIEND REQUESTS</span><h2>好友邀請</h2><h3>收到的邀請</h3>${slSocialList(slSocialRows.filter(x=>x.relation==='received'),'目前沒有收到邀請。')}<h3>送出的邀請</h3>${slSocialList(slSocialRows.filter(x=>x.relation==='sent'),'目前沒有待回覆的邀請。')}`;
   if(slCommunityTab==='messages')content=slChatPanel();
-  if(slCommunityTab==='forum')content=`<span class="eyebrow">SPORTS DISCUSSION</span><h2>運動討論區</h2><p class="sl-social-lead">未來公開文章不需登入即可閱讀；登入後可以發文、留言、按讚及收藏。</p><div class="sl-social-categories">${['羽球','健身','籃球','跑步','自行車','游泳','綜合討論'].map(x=>`<span>${x}</span>`).join('')}</div><div class="sl-social-empty"><span aria-hidden="true">▤</span><h3>討論區正在規劃中</h3><p>目前沒有公開文章資料。正式上線前會完成內容檢舉與管理機制。</p></div>`;
+  if(slCommunityTab==='forum')content=`<span class="eyebrow">BADMINTON DISCUSSION</span><h2>羽球討論區</h2><p class="sl-social-lead">未來公開文章不需登入即可閱讀；登入後可以發文、留言、按讚及收藏。</p><div class="sl-social-categories">${['單打','雙打','球拍與裝備','技術訓練','賽事交流'].map(x=>`<span>${x}</span>`).join('')}</div><div class="sl-social-empty"><span aria-hidden="true">▤</span><h3>討論區正在規劃中</h3><p>目前沒有公開文章資料。正式上線前會完成內容檢舉與管理機制。</p></div>`;
   return `<div class="sl-social-page"><section class="sl-social-hero"><div><span class="sl-social-kicker">SPORTLINK · COMMUNITY</span><h1>運動不只是一堂課，<br><em>也是一群志同道合的人。</em></h1><p>認識運動夥伴、建立好友關係，未來一起分享運動心得與活動。</p><div class="sl-social-hero-meta"><span>運動好友</span><span>一對一私訊</span><span>公開討論區</span></div></div><div class="sl-social-hero-symbol" aria-hidden="true">✳</div></section><div class="sl-social-preview-notice" role="status"><strong>好友功能已開放</strong><span>現在可以搜尋會員、發送好友邀請及管理好友；好友私人訊息已開放；運動討論區將陸續推出。</span></div><div class="sl-social-layout"><nav class="sl-social-tabs" aria-label="社群功能分頁">${nav}</nav><section class="sl-social-panel" aria-live="polite">${slSocialError?`<p class="notice" role="alert">${esc(slSocialError)}</p>`:''}${slSocialLoading?'<p class="muted">正在讀取…</p>':''}${slSocialProfile?`<div class="sl-social-profile"><h3>${esc(slSocialProfile.display_name)}</h3><p>${esc(slSocialProfile.role)} · SportLink 會員</p><p class="muted">只顯示公開暱稱與會員角色，不公開聯絡資訊。</p>${slSocialProfile.relation==='accepted'?btn('解除好友','social-action:remove:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='sent'?btn('取消邀請','social-action:cancel:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='received'?`${btn('接受','social-action:accept:'+slSocialProfile.id)} ${btn('拒絕','social-action:reject:'+slSocialProfile.id,'btn secondary')}`:btn('送出好友邀請','social-action:send:'+slSocialProfile.id)} ${btn('封鎖會員','social-block:'+slSocialProfile.id,'btn secondary')} ${btn('關閉','social-close','btn secondary')}</div>`:''}${content}${!user?'<div class="sl-social-login-tip">想參與社群？先登入 SportLink。<button type="button" data-page="account">登入／註冊 ↗</button></div>':''}</section></div></div>`;
 }
 
@@ -493,11 +500,11 @@ function render(){
    if(page==='community'){app.innerHTML=slCommunityView();slNoticePaint()}
    else if(page==='home')app.innerHTML=`
 <section class="hero sl-home-hero"><div class="hero-copy"><span class="hero-eyebrow"><span class="live-dot"></span> SPORTLINK · FIND YOUR COACH</span><h1>找到對的教練，<br><em>突破每一個可能。</em></h1><p>從尋找教練到安排課程，讓運動變得更簡單。找到適合你的節奏，踏出下一步。</p><div class="hero-actions">${btn('探索專業教練 ↗','go:coaches')}${btn('成為 SportLink 教練 ↗',user?'go:coach-apply':'go:account','btn ghost')}</div><div class="hero-trust"><span>✦ 依地區尋找</span><span>✦ 彈性選擇時段</span><span>✦ 查看教練介紹與評價</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><img class="hero-athlete" src="./athlete.svg" alt="" loading="eager" decoding="async"><div class="hero-spark spark-one">✦</div><div class="hero-spark spark-two">✧</div><div class="floating-note note-one">✦ MOVE BETTER</div><div class="floating-note note-two">YOUR NEXT LEVEL ↗</div></div></section>
-<section class="section sl-home-search" aria-labelledby="slHomeSearchTitle"><div class="sl-home-search-copy"><span class="eyebrow">FIND YOUR COACH</span><h2 id="slHomeSearchTitle">從喜歡的運動開始。</h2><p class="muted">選擇運動項目與授課地區，快速探索適合你的教練。</p></div><form id="slHomeSearchForm" class="sl-home-search-form"><label>運動項目<select id="slHomeSport" name="sport">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select></label><label>授課地區<select id="slHomeArea" name="area">${areaOptions(areaFilter,true)}</select></label><button type="submit" class="btn sl-home-search-button">搜尋教練 ↗</button></form></section>
+<section class="section sl-home-search" aria-labelledby="slHomeSearchTitle"><div class="sl-home-search-copy"><span class="eyebrow">FIND YOUR COACH</span><h2 id="slHomeSearchTitle">尋找你的羽球教練。</h2><p class="muted">選擇授課地區，快速探索適合你的羽球教練。</p></div><form id="slHomeSearchForm" class="sl-home-search-form"><label>授課地區<select id="slHomeArea" name="area">${areaOptions(areaFilter,true)}</select></label><button type="submit" class="btn sl-home-search-button">搜尋教練 ↗</button></form></section>
 <section class="section sl-how-section sl-home-steps" aria-labelledby="slHowTitle"><div class="section-heading"><div><span class="eyebrow">HOW IT WORKS</span><h2 id="slHowTitle">三個步驟，開始你的運動旅程。</h2></div><p class="muted">簡單搜尋、挑選時段、送出預約。</p></div><div class="sl-how-grid"><div class="sl-how-step"><span class="sl-step-number">01</span><span class="sl-home-step-icon" aria-hidden="true">◎</span><h3>找到適合的教練</h3><p>依運動項目、地區和教學介紹挑選。</p></div><div class="sl-how-step"><span class="sl-step-number">02</span><span class="sl-home-step-icon" aria-hidden="true">▦</span><h3>選擇上課時間</h3><p>查看教練開放的時段與課程時長。</p></div><div class="sl-how-step"><span class="sl-step-number">03</span><span class="sl-home-step-icon" aria-hidden="true">✓</span><h3>送出預約申請</h3><p>登入後送出申請，等待教練確認。</p></div></div></section>
 <section class="section featured-section sl-home-featured"><div class="section-heading"><div><span class="eyebrow">EXPLORE COACHES</span><h2>認識 SportLink 教練</h2><p class="muted">看看教練的專長、地區、價格及課程資訊。</p></div>${btn('查看全部教練 ↗','go:coaches','btn secondary')}</div><div class="grid">${allCoaches().slice(0,3).map(coachCard).join('')||'<div class="empty">目前尚無上架教練，歡迎稍後再來探索。</div>'}</div></section>
 <section class="closing-banner sl-home-join"><div><span class="eyebrow">JOIN SPORTLINK</span><h2>讓運動熱情，遇見專業陪伴。</h2><p>想開始運動？探索教練。想分享專業？加入 SportLink 教練行列。</p></div><div class="sl-home-join-actions">${btn('尋找教練 ↗','go:coaches','btn ghost')}${btn('申請成為教練 ↗',user?'go:coach-apply':'go:account','btn secondary')}</div></section>`;
-  else if(page==='coaches')app.innerHTML=`<h1>尋找運動教練</h1><p class="muted">僅顯示已通過審核的真實教練。</p><div class="filters"><select class="field" id="sportFilter">${options(['全部','游泳','羽球','健身','籃球'],sportFilter)}</select><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>(sportFilter==='全部'||c.sport===sportFilter)&&(areaFilter==='全部'||fullArea(c.area)===areaFilter)).map(coachCard).join('')||'<div class="empty">沒有符合條件的教練</div>'}</div>`;
+  else if(page==='coaches')app.innerHTML=`<h1>尋找羽球教練</h1><p class="muted">僅顯示已通過審核的羽球教練。</p><div class="filters"><select class="field" id="areaFilter">${areaOptions(areaFilter,true)}</select></div><div class="grid">${allCoaches().filter(c=>areaFilter==='全部'||fullArea(c.area)===areaFilter).map(coachCard).join('')||'<div class="empty">沒有符合條件的羽球教練</div>'}</div>`;
   else if(page.startsWith('coach:')){
     const c=liveCoaches.find(x=>x.id===page.slice(6));if(!c){page='coaches';render();return}
     app.innerHTML=`<div class="panel card coach-detail"><div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">${photoAvatar(c,true)}<h1>${esc(c.display_name)}</h1></div><p class="muted">${esc(c.sport)} · ${esc(fullArea(c.area))}</p><p>${esc(c.description)}</p>${c.teaching_years!=null?`<p><b>教學年資：</b>${esc(c.teaching_years)} 年</p>`:''}${c.teaching_experience?`<p><b>教學經歷：</b>${esc(c.teaching_experience)}</p>`:''}${c.certificate_name?`<p><b>專業證照：</b>${esc(c.certificate_name)}</p>`:''}${coachReviewPanel(c.id)}<div class="sl-coach-detail-fav">${slFavoriteButton(c.id)}</div><p class="price">NT$${Number(c.price).toLocaleString()} / 小時</p><hr><section class="sl-booking-widget"><span class="eyebrow">BOOK A SESSION</span><h2>選擇預約時間</h2><p class="muted">綠色代表可預約，橘色代表已有預約。選擇時長後，系統會計算結束時間。</p><form class="form" id="bookingForm"><label>上課日期<input name="date" type="date" id="slBookingDate" min="${dateToday()}" required></label><div id="slBookingSchedule" aria-live="polite">正在讀取時段…</div><label>課程時長<select name="duration" id="slBookingDuration" required disabled><option value="">請先選擇日期</option></select></label><label>開始時間<select name="start" id="slBookingStart" required disabled><option value="">請先選擇時長</option></select></label><div class="sl-booking-summary" id="slBookingSummary">選擇日期、時長與開始時間後，這裡會顯示預約資訊。</div><label>備註<textarea name="note" maxlength="500" placeholder="例如：第一次學羽球"></textarea></label><button class="btn" type="submit" disabled>送出預約申請</button><p id="bookingSlotMessage" class="muted small" role="status"></p></form></section><p class="muted small">預約將儲存在 Supabase，需由教練確認；課程結束 24 小時後自動完成。</p></div>`;
@@ -632,7 +639,7 @@ function render(){
       const submit=coachEditForm.querySelector('button[type="submit"]');
       const f=new FormData(coachEditForm);
       const displayName=String(f.get('display_name')||'').trim();
-      const sport=String(f.get('sport')||'').trim();
+      const sport='羽球';
       const area=String(f.get('area')||'').trim();
       const price=Number(f.get('price'));
       const description=String(f.get('description')||'').trim();
@@ -704,17 +711,17 @@ function render(){
   }
   else if(page==='coach-apply'){
     if(!user){page='account';render();return}if(coachProfile){page='dashboard';render();return}
-    app.innerHTML=`<div class="panel card"><h1>申請教練上架</h1><p class="muted">送出後等待平台管理員核准。核准前不會開放學生預約。</p><form class="form" id="coachApply"><label>公開顯示名稱<input name="name" required maxlength="60" value="${esc(user.name)}"></label><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>授課地區（雙北及桃園）<select name="area">${areaOptions('台北市大安區')}</select></label><label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" required></label><label>教學介紹<textarea name="description" maxlength="1000" required></textarea></label><button class="btn">送出教練申請</button></form></div>`;
-    app.querySelector('#coachApply').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),submit=e.target.querySelector('button');submit.disabled=true;try{const {error}=await supabaseClient.from('coaches').insert({user_id:user.id,display_name:String(f.get('name')).trim(),sport:f.get('sport'),area:f.get('area'),price:Number(f.get('price')),description:String(f.get('description')).trim(),is_active:false});if(error)throw error;alert('教練申請已送出，等待管理員審核');page='dashboard';await reload()}catch(err){alert('送出失敗：'+errorText(err))}finally{submit.disabled=false}};
+    app.innerHTML=`<div class="panel card"><h1>申請羽球教練上架</h1><p class="muted">送出後等待平台管理員核准。核准前不會開放學生預約。</p><form class="form" id="coachApply"><label>公開顯示名稱<input name="name" required maxlength="60" value="${esc(user.name)}"></label><label>運動項目<input value="羽球" readonly></label><label>授課地區（雙北及桃園）<select name="area">${areaOptions('台北市大安區')}</select></label><label>每小時價格（NT$）<input name="price" type="number" min="1" max="100000" required></label><label>教學介紹<textarea name="description" maxlength="1000" required></textarea></label><button class="btn">送出教練申請</button></form></div>`;
+    app.querySelector('#coachApply').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),submit=e.target.querySelector('button');submit.disabled=true;try{const {error}=await supabaseClient.from('coaches').insert({user_id:user.id,display_name:String(f.get('name')).trim(),sport:'羽球',area:f.get('area'),price:Number(f.get('price')),description:String(f.get('description')).trim(),is_active:false});if(error)throw error;alert('羽球教練申請已送出，等待管理員審核');page='dashboard';await reload()}catch(err){alert('送出失敗：'+errorText(err))}finally{submit.disabled=false}};
   }
   else if(page==='admin'){
     if(!user||!admin){page='dashboard';render();return}
     app.innerHTML=`<h1>SportLink 平台管理後台</h1><p class="muted">只有經資料庫授權的管理員可查看。</p>${btn('重新整理','admin-refresh','btn secondary')}<div class="section"><h2>全平台預約</h2><div class="list">${bookings.map(bookingCard).join('')||'<div class="item muted">尚無預約。</div>'}</div></div><div class="section"><h2>教練上架審核</h2><div class="list" id="adminCoaches"><div class="item muted">載入中…</div></div></div>`;
-    supabaseClient.from('coaches').select('id,display_name,sport,area,price,is_active').order('created_at',{ascending:false}).then(({data,error})=>{if(page!=='admin')return;const target=app.querySelector('#adminCoaches');if(!target)return;target.innerHTML=error?`<div class="item">讀取失敗：${esc(error.message)}</div>`:(data||[]).map(c=>`<div class="item"><div class="row"><b>${esc(c.display_name)} · ${esc(c.sport)} · ${esc(c.area)}</b><span class="pill">${c.is_active?'已上架':'待審核／已下架'}</span></div><p class="muted">NT$${Number(c.price).toLocaleString()} / 小時</p>${btn(c.is_active?'下架教練':'核准上架','admin-coach:'+c.id+':'+(!c.is_active),'btn secondary')}</div>`).join('')||'<div class="item muted">尚無教練申請。</div>'});
+    supabaseClient.from('coaches').select('id,display_name,sport,area,price,is_active').eq('sport','羽球').order('created_at',{ascending:false}).then(({data,error})=>{if(page!=='admin')return;const target=app.querySelector('#adminCoaches');if(!target)return;target.innerHTML=error?`<div class="item">讀取失敗：${esc(error.message)}</div>`:(data||[]).map(c=>`<div class="item"><div class="row"><b>${esc(c.display_name)} · ${esc(c.sport)} · ${esc(c.area)}</b><span class="pill">${c.is_active?'已上架':'待審核／已下架'}</span></div><p class="muted">NT$${Number(c.price).toLocaleString()} / 小時</p>${btn(c.is_active?'下架教練':'核准上架','admin-coach:'+c.id+':'+(!c.is_active),'btn secondary')}</div>`).join('')||'<div class="item muted">尚無教練申請。</div>'});
   }
   else if(page==='substitutions')app.innerHTML=`<div class="row"><div><h1>代課媒合中心（示範）</h1><p class="muted">此區資料僅存在目前瀏覽器，尚未雲端同步。</p></div>${btn('＋ 發布代課需求','go:newjob')}</div><div class="grid">${jobs.filter(j=>j.status==='open').map(jobCard).join('')||'<p>目前沒有代課需求。</p>'}</div>`;
   else if(page.startsWith('job:')){const j=jobs.find(x=>x.id===+page.slice(4));if(!j){page='substitutions';render();return}app.innerHTML=`<div class="panel card"><span class="pill">${esc(j.sport)} · 本機示範</span><h1>${esc(j.sport)}教練代課</h1><p>📍 ${esc(fullArea(j.area))}</p><p>📅 ${esc(j.date)} ${esc(j.time)}</p><p>${esc(j.detail)}</p>${btn('申請這個代課（示範）','apply:'+j.id)}</div>`}
-  else if(page==='newjob'){if(!user){page='account';render();return}app.innerHTML=`<div class="panel card"><h1>發布代課需求（本機示範）</h1><form class="form" id="jobForm"><label>運動項目<select name="sport">${options(['游泳','羽球','健身','籃球'],'游泳')}</select></label><label>行政區<select name="area">${areaOptions('台北市大安區')}</select></label><label>日期<input name="date" type="date" min="${dateToday()}" required></label><label>時間<input name="time" type="time" required></label><label>時數<input name="hours" type="number" min="1" max="12" value="2" required></label><label>時薪<input name="rate" type="number" min="1" required></label><label>需求說明<textarea name="detail" required></textarea></label><button class="btn">發布（示範）</button></form></div>`;app.querySelector('#jobForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);jobs.unshift({id:Date.now(),sport:f.get('sport'),area:f.get('area'),date:f.get('date'),time:f.get('time'),hours:Number(f.get('hours')),rate:Number(f.get('rate')),detail:f.get('detail'),owner:user.name,status:'open'});save('jobs',jobs);page='substitutions';render()}}
+  else if(page==='newjob'){if(!user){page='account';render();return}app.innerHTML=`<div class="panel card"><h1>發布羽球代課需求（本機示範）</h1><form class="form" id="jobForm"><label>運動項目<input value="羽球" readonly></label><label>行政區<select name="area">${areaOptions('台北市大安區')}</select></label><label>日期<input name="date" type="date" min="${dateToday()}" required></label><label>時間<input name="time" type="time" required></label><label>時數<input name="hours" type="number" min="1" max="12" value="2" required></label><label>時薪<input name="rate" type="number" min="1" required></label><label>需求說明<textarea name="detail" required></textarea></label><button class="btn">發布（示範）</button></form></div>`;app.querySelector('#jobForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);jobs.unshift({id:Date.now(),sport:'羽球',area:f.get('area'),date:f.get('date'),time:f.get('time'),hours:Number(f.get('hours')),rate:Number(f.get('rate')),detail:f.get('detail'),owner:user.name,status:'open'});save('jobs',jobs);page='substitutions';render()}}
 }
 // Mobile navigation: keep the existing page-routing behavior intact.
 const slMenuToggle=document.getElementById('slMobileMenuToggle');
@@ -816,8 +823,8 @@ document.addEventListener('click',e=>{
   const id=button.dataset.historyClear,field=document.getElementById(id+'-date');
   if(field){field.value='';field.dispatchEvent(new Event('change',{bubbles:true}))}
 });
-document.addEventListener('submit',e=>{if(e.target.id!=='slHomeSearchForm')return;e.preventDefault();sportFilter=e.target.elements.sport.value;areaFilter=e.target.elements.area.value;page='coaches';render();window.scrollTo(0,0)});
-document.addEventListener('change',e=>{if(e.target.id==='sportFilter'){sportFilter=e.target.value;render()}if(e.target.id==='areaFilter'){areaFilter=e.target.value;render()}});
+document.addEventListener('submit',e=>{if(e.target.id!=='slHomeSearchForm')return;e.preventDefault();areaFilter=e.target.elements.area.value;page='coaches';render();window.scrollTo(0,0)});
+document.addEventListener('change',e=>{if(e.target.id==='areaFilter'){areaFilter=e.target.value;render()}});
 async function refreshAuthUser(){
   const {data:{session},error}=await supabaseClient.auth.getSession();
   if(error)throw error;
