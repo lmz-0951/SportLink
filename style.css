@@ -396,7 +396,10 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .sl-member-popover-head{display:flex;flex-direction:column;gap:3px;padding:12px 13px 13px;border-bottom:1px solid #e8e9e2;margin-bottom:6px;color:#254437;overflow-wrap:anywhere}
 .sl-member-role{color:#79877d;font-size:12px}
 .nav .sl-member-popover button{display:block;width:100%;text-align:left;background:transparent;color:#2b4639;padding:13px 12px;border-radius:10px;font-size:14px;min-height:44px}
+.nav .sl-member-popover button[hidden]{display:none!important}
 .nav .sl-member-popover button:hover{background:#edf3eb}
+.nav .sl-member-popover .sl-member-push-disable{border-top:1px solid #e8e9e2;color:#ad5b3b;margin-top:4px;padding-top:15px}
+.nav .sl-member-popover .sl-member-push-disable:hover{background:#fff0ed}
 .nav .sl-member-popover .sl-member-logout{border-top:1px solid #e8e9e2;color:#ad5b3b;border-radius:0;margin-top:4px;padding-top:15px}
 .sl-welcome-card{background:linear-gradient(118deg,#203e32 0%,#315743 74%,#3b604a 100%);border:1px solid #355b49;border-radius:25px;color:#fff;padding:28px 32px 23px;margin:14px 0 24px;box-shadow:0 16px 36px #193e2b22;position:relative;overflow:hidden}
 .sl-welcome-card:after{content:'';position:absolute;right:-80px;top:-140px;width:330px;height:330px;border:1px solid #ffffff20;border-radius:50%;box-shadow:0 0 0 55px #ffffff05;pointer-events:none}
@@ -621,4 +624,28 @@ body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),rad
 }
 @media(prefers-reduced-motion:reduce){
   .sl-coach-calendar-modal,.sl-coach-calendar-dialog{animation:none}
+}
+.sl-dashboard-tools+.sl-push-settings{margin:-8px 0 24px;padding:17px 19px;border-color:#e8dfef;border-radius:16px;background:linear-gradient(110deg,#faf6ff,#fffaf5)}
+.sl-push-settings strong{color:#49345e}
+.sl-push-settings button{border-radius:999px}
+.sl-report-form-card{max-width:760px;padding:clamp(22px,4vw,36px);border:1px solid #e8dfef;border-radius:22px;background:linear-gradient(145deg,#fffefa,#faf6ff);box-shadow:0 16px 42px #43305b12}
+.sl-report-form-card h1{margin:8px 0 10px;color:#33283f}
+.sl-report-form-card>p{line-height:1.75}
+.sl-report-form-card input[type=file]{padding:12px;background:#fff}
+.sl-report-message{min-height:1.5em;margin:0;color:#67478a;font-size:14px}
+.sl-admin-reports{display:grid;gap:14px;margin-top:16px}
+.sl-admin-report{padding:18px;border:1px solid #e8dfef;border-radius:16px;background:#fff;box-shadow:0 5px 16px #39214d08}
+.sl-admin-report>header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sl-admin-report>header>strong{color:#49345e}
+.sl-admin-report>p{line-height:1.7;overflow-wrap:anywhere}
+.sl-report-image-link{display:inline-flex;margin:5px 0 12px;color:#67478a;font-weight:750}
+.sl-admin-report-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto;align-items:end;gap:10px;padding-top:14px;border-top:1px solid #eee8f2}
+.sl-admin-report-controls label{display:grid;gap:6px;color:#514363;font-size:12px;font-weight:750}
+.sl-admin-report-controls select,.sl-admin-report-controls textarea{width:100%;padding:10px;border:1px solid #e3d8ee;border-radius:10px;background:#fff;font:inherit}
+.sl-admin-report-controls textarea{min-height:42px;resize:vertical}
+.sl-admin-report-controls .btn{padding:10px 13px;font-size:12px}
+@media(max-width:700px){
+  .sl-admin-report{padding:15px}
+  .sl-admin-report-controls{grid-template-columns:1fr}
+  .sl-admin-report-controls .btn{width:100%;min-height:44px}
 }

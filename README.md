@@ -1,16 +1,18 @@
-# SportLink V1 — 可部署網站
+# SportLink
 
-此資料夾可直接部署至 Vercel，公開網址可由任何人開啟。
+SportLink is a static web app deployed on Vercel. Member authentication, coaching profiles, course bookings, open-play games, and community data use Supabase. The substitutions area is still a local browser demo.
 
-## 不需要寫程式的部署步驟
-1. 前往 https://github.com/new ，建立公開或私人儲存庫 `sportlink`。
-2. 將 `index.html`、`vercel.json` 上傳到儲存庫根目錄（GitHub 的 Add file → Upload files）。
-3. 前往 https://vercel.com/new ，用 GitHub 登入，選擇 `sportlink` 儲存庫。
-4. Framework Preset 選 `Other`，Root Directory 留 `./`，Build Command 留空，Output Directory 留空。
-5. 按 Deploy，完成後取得 `https://你的專案名稱.vercel.app` 公開網址。
-6. 修改網站後將檔案重新上傳 GitHub，Vercel 會自動部署。
+## Local development
 
-## 重要限制
-目前是可公開瀏覽的前端試營運原型。示範帳號、預約與代課資料存於各個使用者的瀏覽器 localStorage，**不同使用者無法共享資料**；沒有真正的帳號驗證、資料庫或支付功能。請勿收集真實個資或宣稱可完成真實預約。
+- Open this repository in VS Code or another editor.
+- Use `node --check app.js` to check the main browser script.
+- Supabase schema changes are in `supabase/migrations/`; apply them separately in the Supabase project.
+- Never commit `.env.local`, Vercel project state, or service-role credentials.
 
-要正式開放學生與教練註冊使用，下一步必須導入 Supabase Auth、PostgreSQL 資料庫、Row Level Security、管理員審核與通知機制。
+## Deployment
+
+The production sites are managed as separate Vercel projects. Deploy only when requested, and verify both production projects when publishing a shared release.
+
+## Notifications and reports
+
+The booking reminders and member report center require the database migration and scheduled Edge Function setup documented in [SUPABASE_NOTIFICATIONS_SETUP.md](./SUPABASE_NOTIFICATIONS_SETUP.md). These files do not activate the feature in Supabase by themselves.

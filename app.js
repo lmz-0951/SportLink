@@ -569,6 +569,8 @@ function slSyncMemberNav(){
   const loggedIn=!!user;
   login.hidden=loggedIn;
   login.setAttribute('aria-hidden',String(loggedIn));
+  const pushToggle=account?.querySelector('[data-action="push-disable"]');
+  if(pushToggle)pushToggle.hidden=!loggedIn||!slPushStateReady||!slPushEnabled;
   if(account){
     account.hidden=!loggedIn;
     const names=account.querySelectorAll('.sl-member-name');
@@ -588,6 +590,7 @@ function slWelcomeCard(){
 
 // 社群第一階段：純介面預覽，不讀取或寫入好友資料，避免誤認已完成雲端功能。
 let slSocialRows=[],slSocialSearchRows=[],slSocialQuery='',slSocialLoading=false,slSocialError='',slSocialProfile=null;
+let slReportTargetPrefill='',slReportCategoryPrefill='bug';
 const slSocialCard=(m)=>`<div class="sl-social-member"><div><strong>${esc(m.display_name)}</strong><p class="muted small">${esc(m.role)} · ${m.relation==='accepted'?'已是好友':m.relation==='sent'?'已送出邀請':m.relation==='received'?'邀請你成為好友':'運動會員'}</p></div><div class="sl-social-member-actions">${btn('查看個人頁','social-profile:'+m.id,'btn secondary')}${m.relation==='none'?btn('加好友','social-action:send:'+m.id):m.relation==='received'?btn('接受邀請','social-action:accept:'+m.id):''}</div></div>`;
 const slSocialList=(items,empty)=>items.length?`<div class="sl-social-members">${items.map(slSocialCard).join('')}</div>`:`<p class="sl-social-hint">${empty}</p>`;
 async function slSocialLoad(){
@@ -662,14 +665,75 @@ function slNoticeStart(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)slNoticeRefresh()});
 
 // Web push requires a secure origin and explicit user permission.
-let slPushStatus='';
+let slPushStatus='',slPushStateUserId=null,slPushEnabled=false,slPushChecking=false,slPushStateReady=false,slPushStateError='',slPushStateRequest=0;
 const slPushSupported=()=>window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
 function slPushKeyBytes(key){const raw=atob((key+'='.repeat((4-key.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0))}
-function slPushPanel(){return `<section class="sl-push-settings"><strong>🔔 好友訊息推播</strong><p>iPhone 請先在 Safari 加入主畫面，再從主畫面開啟 SportLink。</p><button type="button" class="btn secondary" data-action="push-enable" ${slPushSupported()?'':'disabled'}>啟用手機通知</button><button type="button" class="btn secondary" data-action="push-disable" ${slPushSupported()?'':'disabled'}>關閉通知</button><p role="status">${esc(slPushStatus||(!slPushSupported()?'此瀏覽器不支援推播通知。':'點擊啟用後，允許裝置通知。'))}</p></section>`}
+function slPushWithTimeout(promise,message){
+ let timer;
+ return Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(message)),12000)})]).finally(()=>clearTimeout(timer));
+}
+async function slPushRegistration(create=false){
+ const scope=new URL('./',document.baseURI);
+ let registration=await navigator.serviceWorker.getRegistration(scope.href);
+ if(!registration&&create)registration=await navigator.serviceWorker.register(new URL('./sw.js',document.baseURI),{scope:scope.pathname});
+ if(!registration)return null;
+ if(registration.active)return registration;
+ return slPushWithTimeout(navigator.serviceWorker.ready,'Service Worker 啟動逾時，請重新整理頁面後再試。');
+}
+function slPushResetState(){
+ slPushStateRequest++;slPushStateUserId=null;slPushEnabled=false;slPushChecking=false;slPushStateReady=false;slPushStateError='';slPushStatus='';
+}
+function slPushLoadState(force=false){
+ if(!user)return;
+ const userId=user.id;
+ if(!force&&slPushStateUserId===userId&&(slPushChecking||slPushStateReady))return;
+ if(force)slPushStatus='';
+ if(slPushStateUserId!==userId){slPushEnabled=false;slPushStatus=''}
+ slPushStateUserId=userId;slPushChecking=true;slPushStateReady=false;slPushStateError='';
+ const request=++slPushStateRequest;
+ if(!slPushSupported()){
+   slPushEnabled=false;slPushChecking=false;slPushStateReady=true;
+   return;
+ }
+ (async()=>{
+   const registration=await navigator.serviceWorker.getRegistration(new URL('./',document.baseURI).href);
+   if(!registration?.active){slPushEnabled=false;return}
+   const subscription=await registration.pushManager.getSubscription();
+   if(!subscription){slPushEnabled=false;return}
+   const {data,error}=await supabaseClient.from('sportlink_push_subscriptions')
+     .select('enabled').eq('user_id',userId).eq('endpoint',subscription.endpoint).maybeSingle();
+   if(error)throw error;
+   slPushEnabled=data?.enabled===true;
+ })().catch(error=>{
+   if(request!==slPushStateRequest)return;
+   console.error('SportLink push settings:',error);
+   slPushStateError='通知狀態讀取失敗：'+errorText(error);
+ }).finally(()=>{
+   if(request!==slPushStateRequest)return;
+   slPushChecking=false;slPushStateReady=true;
+   if(user?.id===userId)render();
+ });
+}
+function slPushPanel(){
+ if(user&&slPushStateUserId!==user.id)slPushLoadState();
+ if(slPushEnabled)return '';
+ const supported=slPushSupported();
+ const controls=slPushChecking
+   ?'<button type="button" class="btn secondary sl-push-toggle" disabled>正在確認…</button>'
+   :slPushStateError
+     ?'<button type="button" class="btn secondary sl-push-toggle" data-action="push-refresh">重新確認</button>'
+     :slPushEnabled
+       ?''
+       :`<button type="button" class="btn secondary sl-push-toggle" data-action="push-enable" ${supported?'':'disabled'}>啟用推播</button>`;
+ const supportMessage=!window.isSecureContext?'推播需要 HTTPS 安全連線（localhost 除外）。':!supported?'此瀏覽器不支援推播通知。':'點擊啟用後，允許裝置通知。';
+ const status=slPushStatus||slPushStateError||(slPushChecking?'正在確認此裝置的通知設定…':slPushEnabled?'此裝置已啟用推播通知。':supportMessage);
+ return `<section class="sl-push-settings"><div class="sl-push-heading"><strong>🔔 SportLink 推播通知</strong><div class="sl-push-actions">${controls}</div></div><p>啟用後可收到好友訊息、預約異動，以及上課前 24 小時提醒。iPhone 請先在 Safari 加入主畫面，再從主畫面開啟 SportLink。</p><p role="status" aria-live="polite">${esc(status)}</p></section>`;
+}
 async function slPushEnable(){
  if(!user||!slPushSupported())throw Error('請先登入並確認裝置支援推播');
  if(await Notification.requestPermission()!=='granted')throw Error('通知權限未允許');
- const reg=await navigator.serviceWorker.ready;
+ const reg=await slPushWithTimeout(slPushRegistration(true),'Service Worker 啟動逾時，請重新整理頁面後再試。');
+ if(!reg)throw Error('無法註冊 Service Worker，請確認網站使用 HTTPS 或 localhost。');
  let sub=await reg.pushManager.getSubscription();
  if(sub){const k=sub.options?.applicationServerKey;if(k){const a=new Uint8Array(k),b=slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY);if(a.length!==b.length||a.some((v,i)=>v!==b[i])){await sub.unsubscribe();sub=null}}}
  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY)});
@@ -679,12 +743,90 @@ async function slPushEnable(){
  if(found.error)throw found.error;
  const result=found.data?await supabaseClient.from('sportlink_push_subscriptions').update(row).eq('id',found.data.id):await supabaseClient.from('sportlink_push_subscriptions').insert(row);
  if(result.error)throw result.error;
- slPushStatus='已啟用推播！請使用另一個帳號傳訊息測試。';
+ slPushStateUserId=user.id;slPushEnabled=true;slPushChecking=false;slPushStateReady=true;slPushStateError='';
+ slPushStatus='已啟用推播，可接收訊息與課程提醒。';
 }
 async function slPushDisable(){
- if(!user)throw Error('請先登入');const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+ if(!user||!slPushSupported())throw Error('請先登入並確認裝置支援推播');const reg=await slPushRegistration();const sub=await reg?.pushManager.getSubscription();
  if(sub){const result=await supabaseClient.from('sportlink_push_subscriptions').delete().eq('user_id',user.id).eq('endpoint',sub.endpoint);if(result.error)throw result.error;await sub.unsubscribe()}
- slPushStatus='此裝置已關閉推播通知。';
+ slPushStateUserId=user.id;slPushEnabled=false;slPushChecking=false;slPushStateReady=true;slPushStateError='';
+ slPushStatus='此裝置已關閉所有 SportLink 推播通知。';
+}
+let slAdminReports=[],slAdminReportsLoading=false,slAdminReportsError='';
+const slReportStatuses={pending:'待處理',in_progress:'處理中',resolved:'已解決',closed:'已結案'};
+async function slSubmitReport(form){
+  if(!user)throw Error('請先登入後再提交回報');
+  const message=form.querySelector('#slReportMessage');
+  const submit=form.querySelector('button[type=submit]');
+  const category=String(new FormData(form).get('category')||'');
+  const description=String(new FormData(form).get('description')||'').trim();
+  const target=String(new FormData(form).get('target')||'').trim();
+  const file=form.querySelector('input[type=file]').files?.[0];
+  if(!['bug','abuse'].includes(category)||description.length<10||description.length>2000||target.length>500){
+    message.textContent='請確認分類與內容；描述需為 10 至 2000 字。';return;
+  }
+  const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file?.type];
+  if(file&&(!ext||file.size>5*1024*1024)){
+    message.textContent='截圖僅支援 JPG、PNG、WebP，且不可超過 5 MB。';return;
+  }
+  const reportId=crypto.randomUUID();
+  const path=file?`${user.id}/${reportId}.${ext}`:null;
+  submit.disabled=true;message.textContent=file?'正在上傳截圖並提交…':'正在提交回報…';
+  let reportCreated=false;
+  try{
+    const {error}=await supabaseClient.rpc('sportlink_submit_report',{
+      p_report_id:reportId,p_category:category,p_description:description,
+      p_target:target||null,p_attachment_path:path
+    });
+    if(error)throw error;
+    reportCreated=true;
+    if(file){
+      message.textContent='回報已建立，正在安全上傳截圖…';
+      const {error:uploadError}=await supabaseClient.storage.from('sportlink-report-attachments')
+        .upload(path,file,{contentType:file.type,upsert:false,cacheControl:'3600'});
+      if(uploadError)throw uploadError;
+    }
+    form.reset();slReportTargetPrefill='';slReportCategoryPrefill='bug';message.textContent='回報已送出，感謝你協助改善 SportLink。';
+  }catch(error){
+    if(reportCreated&&path){
+      const {error:removeError}=await supabaseClient.storage.from('sportlink-report-attachments').remove([path]);
+      if(removeError)console.warn('Report attachment cleanup failed:',removeError.message);
+      const {error:clearError}=await supabaseClient.rpc('sportlink_clear_report_attachment',{
+        p_report_id:reportId,p_attachment_path:path
+      });
+      if(clearError)console.warn('Report attachment reference cleanup failed:',clearError.message);
+    }
+    if(reportCreated){form.reset();slReportTargetPrefill='';slReportCategoryPrefill='bug'}
+    console.error('SportLink report submission failed:',error);
+    message.textContent=reportCreated
+      ?(path?`回報內容已送出，但截圖處理失敗：${errorText(error)}`:'回報已送出。')
+      :`送出失敗：${errorText(error)}`;
+  }finally{submit.disabled=false}
+}
+function slAdminReportsPaint(){
+  const target=app.querySelector('#adminReports');
+  if(!target)return;
+  if(slAdminReportsLoading){target.innerHTML='<p class="muted">正在讀取回報…</p>';return}
+  if(slAdminReportsError){target.innerHTML=`<p class="notice" role="alert">${esc(slAdminReportsError)}</p>`;return}
+  if(!slAdminReports.length){target.innerHTML='<p class="muted">目前沒有使用者回報。</p>';return}
+  target.innerHTML=slAdminReports.map(report=>`<article class="sl-admin-report"><header><div><span class="pill">${report.category==='bug'?'網站問題':'使用者／內容檢舉'}</span><span class="muted small"> · ${esc(new Date(report.created_at).toLocaleString('zh-TW'))}</span></div><strong>${esc(report.reporter_name)}</strong></header><p>${esc(report.description)}</p>${report.target?`<p class="muted">相關對象／頁面：${esc(report.target)}</p>`:''}${report.attachmentUrl?`<a class="sl-report-image-link" href="${esc(report.attachmentUrl)}" target="_blank" rel="noopener noreferrer">查看回報截圖 ↗</a>`:report.attachment_path?`<p class="notice">截圖讀取失敗：${esc(report.attachmentError||'無法建立安全連結')}</p>`:''}<form class="sl-admin-report-controls" data-report-id="${esc(report.id)}"><label>處理狀態<select name="status">${Object.entries(slReportStatuses).map(([value,label])=>`<option value="${value}" ${report.status===value?'selected':''}>${label}</option>`).join('')}</select></label><label>管理備註<textarea name="admin_note" maxlength="1000" placeholder="處理結果或內部備註">${esc(report.admin_note||'')}</textarea></label><button type="button" class="btn secondary" data-action="admin-report-save:${esc(report.id)}">儲存處理結果</button></form></article>`).join('');
+}
+async function slAdminReportsLoad(){
+  if(!admin||page!=='admin')return;
+  slAdminReportsLoading=true;slAdminReportsError='';slAdminReportsPaint();
+  try{
+    const {data,error}=await supabaseClient.rpc('sportlink_admin_list_reports');
+    if(error)throw error;
+    slAdminReports=await Promise.all((data||[]).map(async report=>{
+      if(!report.attachment_path)return report;
+      const {data:signed,error:signError}=await supabaseClient.storage
+        .from('sportlink-report-attachments').createSignedUrl(report.attachment_path,300);
+      return {...report,attachmentUrl:signed?.signedUrl||'',attachmentError:signError?.message||''};
+    }));
+  }catch(error){
+    console.error('SportLink admin reports:',error);
+    slAdminReportsError='讀取回報失敗：'+errorText(error);
+  }finally{slAdminReportsLoading=false;slAdminReportsPaint()}
 }
 // Open a specific friend conversation from a trusted, same-origin push link.
 function slPushDeepLinkPeer(){
@@ -694,7 +836,14 @@ function slPushDeepLinkPeer(){
 }
 async function slHandlePushDeepLink(){
   const params=new URLSearchParams(location.search);
-  if(params.get('sl_tab')!=='messages')return;
+  const tab=params.get('sl_tab');
+  if(tab==='bookings'){
+    if(!user)return;
+    page='dashboard';render();
+    history.replaceState(null,'',location.pathname+location.hash);
+    return;
+  }
+  if(tab!=='messages')return;
   if(!user)return; // Keep the link until the member logs in.
   const peer=slPushDeepLinkPeer();
   page='community';slCommunityTab='messages';slSocialProfile=null;
@@ -771,7 +920,7 @@ function slCommunityView(){
   if(slCommunityTab==='requests')content=`<span class="eyebrow">FRIEND REQUESTS</span><h2>好友邀請</h2><h3>收到的邀請</h3>${slSocialList(slSocialRows.filter(x=>x.relation==='received'),'目前沒有收到邀請。')}<h3>送出的邀請</h3>${slSocialList(slSocialRows.filter(x=>x.relation==='sent'),'目前沒有待回覆的邀請。')}`;
   if(slCommunityTab==='messages')content=slChatPanel();
   if(slCommunityTab==='forum')content=`<span class="eyebrow">BADMINTON DISCUSSION</span><h2>羽球討論區</h2><p class="sl-social-lead">未來公開文章不需登入即可閱讀；登入後可以發文、留言、按讚及收藏。</p><div class="sl-social-categories">${['單打','雙打','球拍與裝備','技術訓練','賽事交流'].map(x=>`<span>${x}</span>`).join('')}</div><div class="sl-social-empty"><span aria-hidden="true">▤</span><h3>討論區正在規劃中</h3><p>目前沒有公開文章資料。正式上線前會完成內容檢舉與管理機制。</p></div>`;
-  return `<div class="sl-social-page"><section class="sl-social-hero"><div><span class="sl-social-kicker">SPORTLINK · COMMUNITY</span><h1>運動不只是一堂課，<br><em>也是一群志同道合的人。</em></h1><p>認識運動夥伴、建立好友關係，未來一起分享運動心得與活動。</p><div class="sl-social-hero-meta"><span>運動好友</span><span>一對一私訊</span><span>公開討論區</span></div></div><div class="sl-social-hero-symbol" aria-hidden="true">✳</div></section><div class="sl-social-preview-notice" role="status"><strong>好友功能已開放</strong><span>現在可以搜尋會員、發送好友邀請及管理好友；好友私人訊息已開放；運動討論區將陸續推出。</span></div><div class="sl-social-layout"><nav class="sl-social-tabs" aria-label="社群功能分頁">${nav}</nav><section class="sl-social-panel" aria-live="polite">${slSocialError?`<p class="notice" role="alert">${esc(slSocialError)}</p>`:''}${slSocialLoading?'<p class="muted">正在讀取…</p>':''}${slSocialProfile?`<div class="sl-social-profile"><h3>${esc(slSocialProfile.display_name)}</h3><p>${esc(slSocialProfile.role)} · SportLink 會員</p><p class="muted">只顯示公開暱稱與會員角色，不公開聯絡資訊。</p>${slSocialProfile.relation==='accepted'?btn('解除好友','social-action:remove:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='sent'?btn('取消邀請','social-action:cancel:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='received'?`${btn('接受','social-action:accept:'+slSocialProfile.id)} ${btn('拒絕','social-action:reject:'+slSocialProfile.id,'btn secondary')}`:btn('送出好友邀請','social-action:send:'+slSocialProfile.id)} ${btn('封鎖會員','social-block:'+slSocialProfile.id,'btn secondary')} ${btn('關閉','social-close','btn secondary')}</div>`:''}${content}${!user?'<div class="sl-social-login-tip">想參與社群？先登入 SportLink。<button type="button" data-page="account">登入／註冊 ↗</button></div>':''}</section></div></div>`;
+  return `<div class="sl-social-page"><section class="sl-social-hero"><div><span class="sl-social-kicker">SPORTLINK · COMMUNITY</span><h1>運動不只是一堂課，<br><em>也是一群志同道合的人。</em></h1><p>認識運動夥伴、建立好友關係，未來一起分享運動心得與活動。</p><div class="sl-social-hero-meta"><span>運動好友</span><span>一對一私訊</span><span>公開討論區</span></div></div><div class="sl-social-hero-symbol" aria-hidden="true">✳</div></section><div class="sl-social-preview-notice" role="status"><strong>好友功能已開放</strong><span>現在可以搜尋會員、發送好友邀請及管理好友；好友私人訊息已開放；運動討論區將陸續推出。</span></div><div class="sl-social-layout"><nav class="sl-social-tabs" aria-label="社群功能分頁">${nav}</nav><section class="sl-social-panel" aria-live="polite">${slSocialError?`<p class="notice" role="alert">${esc(slSocialError)}</p>`:''}${slSocialLoading?'<p class="muted">正在讀取…</p>':''}${slSocialProfile?`<div class="sl-social-profile"><h3>${esc(slSocialProfile.display_name)}</h3><p>${esc(slSocialProfile.role)} · SportLink 會員</p><p class="muted">只顯示公開暱稱與會員角色，不公開聯絡資訊。</p>${slSocialProfile.relation==='accepted'?btn('解除好友','social-action:remove:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='sent'?btn('取消邀請','social-action:cancel:'+slSocialProfile.id,'btn secondary'):slSocialProfile.relation==='received'?`${btn('接受','social-action:accept:'+slSocialProfile.id)} ${btn('拒絕','social-action:reject:'+slSocialProfile.id,'btn secondary')}`:btn('送出好友邀請','social-action:send:'+slSocialProfile.id)} ${btn('封鎖會員','social-block:'+slSocialProfile.id,'btn secondary')} ${btn('檢舉此會員','social-report:'+slSocialProfile.id,'btn secondary')} ${btn('關閉','social-close','btn secondary')}</div>`:''}${content}${!user?'<div class="sl-social-login-tip">想參與社群？先登入 SportLink。<button type="button" data-page="account">登入／註冊 ↗</button></div>':''}</section></div></div>`;
 }
 
 function render(){
@@ -870,10 +1019,15 @@ function render(){
      app.innerHTML=`<section class="sl-auth-wrap"><div class="sl-auth-card"><div class="sl-auth-intro"><span class="sl-auth-eyebrow">WELCOME BACK</span><h1>歡迎回到 SportLink</h1><p>登入帳號，繼續你的運動旅程。</p></div>${user?`<p class="notice">目前登入：${esc(user.name)}（${esc(user.role)}）${admin?' · 平台管理員':''}</p>${btn('登出','logout','btn secondary')}`:`<form class="form sl-auth-form" id="accountForm"><label>電子郵件<input name="email" type="email" autocomplete="username" inputmode="email" placeholder="example@email.com" required></label><label>密碼（至少 6 碼）<span class="sl-password-field"><input name="password" id="accountPassword" type="password" minlength="6" autocomplete="current-password" placeholder="請輸入密碼" required><button type="button" class="sl-password-toggle" data-action="toggle-password" aria-label="顯示密碼" aria-controls="accountPassword" aria-pressed="false">顯示</button></span></label><div id="signupFields" hidden><label>顯示名稱<input name="name" maxlength="30" autocomplete="nickname" placeholder="你的暱稱"></label><label>主要身分<select name="role"><option value="student">學生</option><option value="coach">教練</option></select></label></div><button type="button" class="sl-text-button" data-action="forgot-password" id="forgotPasswordButton">忘記密碼？</button><button class="btn sl-auth-submit" type="submit" id="authSubmit">登入 SportLink</button><div class="sl-auth-switch"><span id="authSwitchPrompt">還沒有帳號嗎？</span><button type="button" data-action="toggle-signup" class="sl-auth-switch-btn">立即註冊</button></div><p class="sl-auth-hint">可使用瀏覽器或 iPhone 密碼管理員儲存密碼；登入狀態會持續保留，直到登出或工作階段失效。</p><p id="authMessage" class="sl-auth-message" role="status" aria-live="polite"></p></form>`}</div></section>`;
     const form=app.querySelector('#accountForm');if(form)form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('#authSubmit'),message=form.querySelector('#authMessage'),signup=!form.querySelector('#signupFields').hidden,f=new FormData(form);submit.disabled=true;message.textContent='處理中…';try{let result;if(signup){const name=String(f.get('name')||'').trim();if(!name)throw Error('請填寫顯示名稱');result=await supabaseClient.auth.signUp({email:String(f.get('email')),password:String(f.get('password')),options:{emailRedirectTo:location.origin,data:{display_name:name,role:String(f.get('role'))}}})}else result=await supabaseClient.auth.signInWithPassword({email:String(f.get('email')),password:String(f.get('password'))});if(result.error)throw result.error;if(signup&&!result.data.session){message.textContent='註冊申請已送出。請先完成 Email 驗證，再登入。';return}await refreshAuthUser();page='dashboard';await reload();await slHandlePushDeepLink()}catch(err){message.textContent='操作失敗：'+errorText(err)}finally{submit.disabled=false}};
   }
+  else if(page==='report'){
+    if(!user){page='account';render();return}
+    app.innerHTML=`<section class="panel card sl-report-form-card"><span class="eyebrow">HELP & SAFETY</span><h1>回報問題／檢舉</h1><p class="muted">請提供具體資訊，協助我們處理網站問題或不當內容。管理員會查看回報；請勿填入密碼或不必要的敏感個資。</p><form class="form" id="slReportForm"><label>回報類型<select name="category" required><option value="bug" ${slReportCategoryPrefill==='bug'?'selected':''}>網站問題回報</option><option value="abuse" ${slReportCategoryPrefill==='abuse'?'selected':''}>不當使用者／內容檢舉</option></select></label><label>問題描述<textarea name="description" minlength="10" maxlength="2000" rows="6" placeholder="請描述遇到的問題或檢舉原因（至少 10 字）" required></textarea></label><label>相關頁面或對象（選填）<input name="target" maxlength="500" placeholder="網址、使用者暱稱或相關內容" value="${esc(slReportTargetPrefill)}"></label><label>附上截圖（選填，JPG／PNG／WebP，最多 5 MB）<input name="attachment" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="btn" type="submit">送出回報</button><p id="slReportMessage" class="sl-report-message" role="status" aria-live="polite"></p></form></section>`;
+    app.querySelector('#slReportForm').addEventListener('submit',async event=>{event.preventDefault();await slSubmitReport(event.currentTarget)});
+  }
   else if(page==='dashboard'){
     if(!user){page='account';render();return}
     const mine=bookings.filter(b=>b.student_id===user.id),received=bookings.filter(b=>b.coach_id===coachProfile?.id);
-    app.innerHTML=`${slWelcomeCard()}<div class="sl-dashboard-tools"><span class="sl-tools-label">會員快捷操作</span><div class="sl-tools-actions">${btn('↻ 更新課程','reload','btn secondary')}${admin?btn('平台管理後台','go:admin','btn secondary'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}</div></div>${coachProfile?`${slCoachCalendarPanel()}${availabilityPanel()}${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history','coach')}${coachEditPanel()}${slStudentDashboard(mine)}`:slStudentDashboard(mine)}<details class="sl-demo-details"><summary>代課媒合（示範功能）</summary><p>代課媒合仍是本機示範，尚未雲端同步。</p>${btn('查看代課示範','go:substitutions','btn secondary')}</details>`;
+    app.innerHTML=`${slWelcomeCard()}<div class="sl-dashboard-tools"><span class="sl-tools-label">會員快捷操作</span><div class="sl-tools-actions">${btn('↻ 更新課程','reload','btn secondary')}${admin?btn('平台管理後台','go:admin','btn secondary'):''}${!coachProfile?btn('申請成為教練','go:coach-apply','btn secondary'):''}${btn('回報問題／檢舉','go:report','btn secondary')}</div></div>${slPushPanel()}${coachProfile?`${slCoachCalendarPanel()}${availabilityPanel()}${slBookingSection('學生預約我的課程',received,'目前沒有進行中的學生預約。','sl-coach-history','coach')}${coachEditPanel()}${slStudentDashboard(mine)}`:slStudentDashboard(mine)}<details class="sl-demo-details"><summary>代課媒合（示範功能）</summary><p>代課媒合仍是本機示範，尚未雲端同步。</p>${btn('查看代課示範','go:substitutions','btn secondary')}</details>`;
     if(coachProfile)slSetupCoachCalendar(received);
     slSetupStudentCalendar(mine);
     app.querySelectorAll('.sl-board-filters').forEach(group=>group.addEventListener('click',e=>{
@@ -997,8 +1151,9 @@ function render(){
   }
   else if(page==='admin'){
     if(!user||!admin){page='dashboard';render();return}
-    app.innerHTML=`<h1>SportLink 平台管理後台</h1><p class="muted">只有經資料庫授權的管理員可查看。</p>${btn('重新整理','admin-refresh','btn secondary')}<div class="section"><h2>全平台預約</h2><div class="list">${bookings.map(bookingCard).join('')||'<div class="item muted">尚無預約。</div>'}</div></div><div class="section"><h2>教練上架審核</h2><div class="list" id="adminCoaches"><div class="item muted">載入中…</div></div></div>`;
+    app.innerHTML=`<h1>SportLink 平台管理後台</h1><p class="muted">只有經資料庫授權的管理員可查看。</p>${btn('重新整理','admin-refresh','btn secondary')}<div class="section"><h2>使用者回報與檢舉</h2><p class="muted">回報內容與附圖只有平台管理員能查看。</p>${btn('重新讀取回報','admin-reports-refresh','btn secondary')}<div id="adminReports" class="sl-admin-reports"><p class="muted">正在讀取回報…</p></div></div><div class="section"><h2>全平台預約</h2><div class="list">${bookings.map(bookingCard).join('')||'<div class="item muted">尚無預約。</div>'}</div></div><div class="section"><h2>教練上架審核</h2><div class="list" id="adminCoaches"><div class="item muted">載入中…</div></div></div>`;
     supabaseClient.from('coaches').select('id,display_name,sport,area,price,is_active').eq('sport','羽球').order('created_at',{ascending:false}).then(({data,error})=>{if(page!=='admin')return;const target=app.querySelector('#adminCoaches');if(!target)return;target.innerHTML=error?`<div class="item">讀取失敗：${esc(error.message)}</div>`:(data||[]).map(c=>`<div class="item"><div class="row"><b>${esc(c.display_name)} · ${esc(c.sport)} · ${esc(c.area)}</b><span class="pill">${c.is_active?'已上架':'待審核／已下架'}</span></div><p class="muted">NT$${Number(c.price).toLocaleString()} / 小時</p>${btn(c.is_active?'下架教練':'核准上架','admin-coach:'+c.id+':'+(!c.is_active),'btn secondary')}</div>`).join('')||'<div class="item muted">尚無教練申請。</div>'});
+    slAdminReportsLoad();
   }
   else if(page==='substitutions')app.innerHTML=`<div class="row"><div><h1>代課媒合中心（示範）</h1><p class="muted">此區資料僅存在目前瀏覽器，尚未雲端同步。</p></div>${btn('＋ 發布代課需求','go:newjob')}</div><div class="grid">${jobs.filter(j=>j.status==='open').map(jobCard).join('')||'<p>目前沒有代課需求。</p>'}</div>`;
   else if(page.startsWith('job:')){const j=jobs.find(x=>x.id===+page.slice(4));if(!j){page='substitutions';render();return}app.innerHTML=`<div class="panel card"><span class="pill">${esc(j.sport)} · 本機示範</span><h1>${esc(j.sport)}教練代課</h1><p>📍 ${esc(fullArea(j.area))}</p><p>📅 ${esc(j.date)} ${esc(j.time)}</p><p>${esc(j.detail)}</p>${btn('申請這個代課（示範）','apply:'+j.id)}</div>`}
@@ -1037,11 +1192,18 @@ document.addEventListener('click',async e=>{
   if(b.dataset.page){slChatStop();document.querySelector('.sl-member-account')?.removeAttribute('open');closeSlMobileMenu();page=b.dataset.page==='account'&&user?'dashboard':b.dataset.page;if(page!=='open-play')slOpenPlaySelectedGameId='';render();if(page==='community'&&user)slSocialLoad();if(page==='open-play')slOpenPlayLoad();window.scrollTo(0,0);return}
   const a=b.dataset.action;if(!a)return;const [cmd,id,extra]=a.split(':');
   if(cmd==='coach-calendar-close'){slCoachCalendarCloseDialog();return}
+  if(cmd==='push-refresh'){slPushLoadState(true);render();return}
   if(cmd==='push-enable'||cmd==='push-disable'){b.disabled=true;try{if(cmd==='push-enable')await slPushEnable();else await slPushDisable()}catch(err){slPushStatus='設定失敗：'+errorText(err)}render();return}
   if(cmd==='social-tab'){if(!['discover','friends','requests','messages','forum'].includes(id))return;slChatStop();slCommunityTab=id;slSocialProfile=null;render();if(user&&['discover','friends','requests','messages'].includes(id))slSocialLoad();return}
   if(cmd==='chat-open'){if(!user||!slChatFriends().some(x=>x.id===id))return;slChatPeer=id;slChatMessages=[];slChatError='';slChatStart();slChatLoad();return}
   if(cmd==='social-close'){slSocialProfile=null;render();return}
   if(cmd==='social-profile'){slSocialProfile=[...slSocialRows,...slSocialSearchRows].find(x=>x.id===id)||null;render();return}
+  if(cmd==='social-report'){
+    const member=[...slSocialRows,...slSocialSearchRows].find(x=>x.id===id);
+    if(!member||!user)return;
+    slReportCategoryPrefill='abuse';slReportTargetPrefill=`${member.display_name} (${member.id})`;
+    page='report';render();window.scrollTo(0,0);return;
+  }
   if(cmd==='social-block'){if(!confirm('封鎖後將解除好友並禁止互相發送邀請。確定封鎖？'))return;}
   if(cmd==='social-action'||cmd==='social-block'){
     if(!user){page='account';render();return}
@@ -1063,7 +1225,10 @@ document.addEventListener('click',async e=>{
       render();
     }catch(err){alert('收藏操作失敗：'+errorText(err));b.disabled=false}return;
   }
-  if(cmd==='go'||cmd==='coach'||cmd==='job'){page=cmd==='go'?id:a;render();window.scrollTo(0,0);return}
+  if(cmd==='go'||cmd==='coach'||cmd==='job'){
+    if(cmd==='go'&&id==='report'){slReportTargetPrefill='';slReportCategoryPrefill='bug'}
+    page=cmd==='go'?id:a;render();window.scrollTo(0,0);return
+  }
   if(cmd==='open-play-refresh'){slOpenPlayFilters={city:'',district:'',level:''};slOpenPlayNotice='';slOpenPlayLoad();return}
   if(cmd==='open-play-mode'){slOpenPlayMode=['list','create','registrations','host-games'].includes(id)?id:'list';slOpenPlaySelectedGameId='';slOpenPlayError='';slOpenPlayNotice='';render();if(slOpenPlayMode==='list')slOpenPlayLoad();else if(slOpenPlayMode==='registrations')slOpenPlayMyGamesLoad();else if(slOpenPlayMode==='host-games')slOpenPlayHostGamesLoad();return}
   if(cmd==='open-play-game'){slOpenPlaySelectedGameId=id;render();app.querySelector('.sl-open-play-dialog-close')?.focus();return}
@@ -1084,6 +1249,25 @@ document.addEventListener('click',async e=>{
     }catch(error){slOpenPlayReviewing=false;slOpenPlayNotice='審核失敗：'+errorText(error);render()}
     return;
   }
+   if(cmd==='admin-reports-refresh'){if(!admin)return;await slAdminReportsLoad();return}
+   if(cmd==='admin-report-save'){
+     if(!admin)return;
+     const form=b.closest('[data-report-id]');
+     if(!form)return;
+     const values=new FormData(form),status=String(values.get('status')||''),note=String(values.get('admin_note')||'').trim();
+     b.disabled=true;
+     try{
+       const {data,error}=await supabaseClient.rpc('sportlink_admin_update_report',{
+         p_report_id:form.dataset.reportId,p_status:status,p_admin_note:note||null
+       });
+       if(error)throw error;
+       if(data!==true)throw Error('回報已不存在，請重新讀取');
+       const report=slAdminReports.find(item=>item.id===form.dataset.reportId);
+       if(report){report.status=status;report.admin_note=note}
+       slAdminReportsPaint();
+     }catch(error){alert('儲存回報處理結果失敗：'+errorText(error));b.disabled=false}
+     return;
+   }
    if(cmd==='reload'||cmd==='admin-refresh'){await reload();return}
    if(cmd==='review'){page='review:'+id;render();window.scrollTo(0,0);return}
    if(cmd==='booking-complete'){
@@ -1233,6 +1417,7 @@ supabaseClient.auth.onAuthStateChange((event,session)=>{
   if(event==='INITIAL_SESSION'||event==='TOKEN_REFRESHED')return;
   if(event==='SIGNED_OUT'){
     slChatStop();slNoticeReset();slChatPeer=null;slChatMessages=[];
+    slPushResetState();
     authVersion++;
     user=null;slOpenPlayMyGames=[];slOpenPlayHostGames=[];admin=false;coachProfile=null;bookings=[];render();
     return;
