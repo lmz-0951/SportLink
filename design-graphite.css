@@ -40,7 +40,6 @@ body{color:#eaf2ff;background:radial-gradient(ellipse 62% 32% at 8% 25%,#34475b8
 .sl-welcome-card:after{border-color:#87baff2b;box-shadow:0 0 0 55px #458fff0a}
 .sl-welcome-avatar{background:#dceaff;border:2px solid #8fb7e9;color:#1769ef}.sl-welcome-eyebrow{color:#7db8ff}.sl-welcome-copy h1{color:#fff}.sl-welcome-copy p{color:#c8d8ed}.sl-welcome-dot{color:#68aaff}.sl-welcome-footer{border-top-color:#7396b64b;color:#e0eaff}.sl-welcome-spark{color:#58a7ff}.sl-tools-label{color:#b8c7d9}
 .sl-student-dashboard{background:linear-gradient(145deg,#34475b,#27394d)}.sl-next-class{background:linear-gradient(115deg,#133e72,#1d76ec)!important}.sl-calendar-day.selected{background:#176ef2;color:#fff}.sl-calendar-nav button{background:#304a66;border-color:#587b9d;color:#dbeaff}.sl-fav-info,.sl-widget-title h3{color:#e9f2ff}
-.sl-demo-details{color:#e3ecf8;border-color:#526b84;background:#293c50}.sl-demo-details p{color:#b8c8dc}
 .foot{background:#15212e;border-top:1px solid #394e65;color:#b9c8d9}.foot p,.footer-right small{color:#a8b9ce}
 /* Keep operational controls readable, including date/time pickers and status chips */
 input,select,textarea{accent-color:#1976ff}input[type=date],input[type=time],input[type=number],input[type=text],input[type=email],input[type=password],select,textarea{color-scheme:light}
