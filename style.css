@@ -277,12 +277,6 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 
 /* SportLink phase 2: homepage clarity and mobile-first navigation. */
 .sl-mobile-menu-toggle{display:none!important}
-.sl-how-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.sl-how-step{background:#fffefa;border:1px solid #e7e3d8;border-radius:20px;padding:25px;min-width:0}
-.sl-step-number{display:inline-block;color:#bc7651;font-size:12px;font-weight:900;letter-spacing:2px;margin-bottom:10px}
-.sl-how-step h3{color:#263d33;margin:0 0 10px;font-size:18px}
-.sl-how-step p{color:#718078;font-size:14px;line-height:1.8;margin:0}
-@media(max-width:960px){.sl-how-grid{gap:12px}}
 @media(max-width:700px){
   .site-header{z-index:50}
   .nav{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 16px}
@@ -296,8 +290,6 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
   .wrap{padding-bottom:70px}
   .hero{padding:36px 24px}
   .hero-actions .btn{min-height:46px}
-  .sl-how-grid{grid-template-columns:1fr;gap:10px}
-  .sl-how-step{padding:20px 21px}
   .filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .filters .field{width:100%;min-width:0;font-size:16px}
   .coach-card .row .btn{min-height:44px}
@@ -404,7 +396,10 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .sl-member-popover-head{display:flex;flex-direction:column;gap:3px;padding:12px 13px 13px;border-bottom:1px solid #e8e9e2;margin-bottom:6px;color:#254437;overflow-wrap:anywhere}
 .sl-member-role{color:#79877d;font-size:12px}
 .nav .sl-member-popover button{display:block;width:100%;text-align:left;background:transparent;color:#2b4639;padding:13px 12px;border-radius:10px;font-size:14px;min-height:44px}
+.nav .sl-member-popover button[hidden]{display:none!important}
 .nav .sl-member-popover button:hover{background:#edf3eb}
+.nav .sl-member-popover .sl-member-push-disable{border-top:1px solid #e8e9e2;color:#ad5b3b;margin-top:4px;padding-top:15px}
+.nav .sl-member-popover .sl-member-push-disable:hover{background:#fff0ed}
 .nav .sl-member-popover .sl-member-logout{border-top:1px solid #e8e9e2;color:#ad5b3b;border-radius:0;margin-top:4px;padding-top:15px}
 .sl-welcome-card{background:linear-gradient(118deg,#203e32 0%,#315743 74%,#3b604a 100%);border:1px solid #355b49;border-radius:25px;color:#fff;padding:28px 32px 23px;margin:14px 0 24px;box-shadow:0 16px 36px #193e2b22;position:relative;overflow:hidden}
 .sl-welcome-card:after{content:'';position:absolute;right:-80px;top:-140px;width:330px;height:330px;border:1px solid #ffffff20;border-radius:50%;box-shadow:0 0 0 55px #ffffff05;pointer-events:none}
@@ -420,6 +415,9 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .sl-tools-label{font-size:13px;font-weight:800;color:#63776a}
 .sl-tools-actions{display:flex;flex-wrap:wrap;gap:8px}
 .sl-tools-actions .btn{padding:10px 16px;font-size:13px;min-height:42px}
+.sl-demo-details{border:1px solid #e4e7dd;border-radius:16px;background:#fffefa;margin:35px 0 12px;padding:16px 20px;color:#385345}
+.sl-demo-details summary{cursor:pointer;font-weight:750}
+.sl-demo-details p{font-size:13px;color:#78877c}
 @media(max-width:700px){
  .nav .sl-member-account{order:1;margin-left:0}
  .sl-member-trigger{max-width:min(46vw,180px);padding:5px 10px 5px 5px;min-height:44px;gap:6px;font-size:12px}
@@ -446,11 +444,20 @@ body::after{filter:hue-rotate(135deg) saturate(.52);opacity:.6}
 .sl-home-search-form label{display:flex;flex-direction:column;gap:8px;color:#3e5a48;font-size:13px;font-weight:800;min-width:0}
 .sl-home-search-form select{width:100%;min-width:0;height:49px;padding:0 12px;border-radius:13px;border:1px solid #d7e1d6;background:#fffefa;color:#284636;font:inherit;font-weight:600}
 .sl-home-search-button{height:49px;white-space:nowrap}.sl-home-search-form select:focus-visible,.sl-home-search-button:focus-visible{outline:3px solid #d19b76;outline-offset:2px}
-.sl-home-steps{margin-top:42px}.sl-home-steps .sl-how-grid{position:relative}.sl-home-steps .sl-how-step{border-radius:20px;background:#fffefa;border:1px solid #e2e8df;box-shadow:0 12px 26px #2546380a;padding:26px}.sl-home-steps .sl-step-number{color:#c37a51;font-weight:900}.sl-home-step-icon{display:flex;align-items:center;justify-content:center;width:43px;height:43px;border-radius:14px;background:#e9f0e7;color:#2b6046;font-size:24px;margin:12px 0}.sl-home-steps .sl-how-step h3{color:#254335}
 .sl-home-featured{margin-top:52px}.sl-home-featured .section-heading .muted{margin-top:8px}.sl-home-join{background:linear-gradient(110deg,#f3e8da,#e9f1e8);border:1px solid #e1e3d9}.sl-home-join-actions{display:flex;gap:10px;flex-wrap:wrap}.sl-home-join .btn.ghost{background:#244638;color:white}.sl-home-join .btn.secondary{background:#fff9f1;color:#985739}
 @media(max-width:900px){.sl-home-search{grid-template-columns:1fr}.sl-home-search-form{grid-template-columns:1fr 1fr}.sl-home-search-button{grid-column:1/-1}}
-@media(max-width:650px){.sl-home-search{padding:23px 18px;margin-top:22px;gap:20px;border-radius:20px}.sl-home-search-form{grid-template-columns:1fr;gap:13px}.sl-home-search-button{grid-column:auto;width:100%}.sl-home-steps{margin-top:30px}.sl-home-steps .sl-how-step{padding:22px}.sl-home-featured{margin-top:35px}.sl-home-join-actions{width:100%}.sl-home-join-actions .btn{width:100%;justify-content:center}.sl-home-hero .hero-trust{gap:8px;flex-wrap:wrap}}
+@media(max-width:650px){.sl-home-search{padding:23px 18px;margin-top:22px;gap:20px;border-radius:20px}.sl-home-search-form{grid-template-columns:1fr;gap:13px}.sl-home-search-button{grid-column:auto;width:100%}.sl-home-featured{margin-top:35px}.sl-home-join-actions{width:100%}.sl-home-join-actions .btn{width:100%;justify-content:center}.sl-home-hero .hero-trust{gap:8px;flex-wrap:wrap}}
 @media(prefers-reduced-motion:reduce){.sl-home-hero .hero-athlete,.sl-home-hero .hero-spark,.sl-home-hero .floating-note{animation:none!important}}
+.sl-open-play-hero{padding:34px 0 12px}.sl-open-play-hero h1{margin:12px 0;font-size:clamp(28px,4vw,42px);color:var(--navy)}.sl-open-play-hero p{max-width:680px;color:var(--muted);line-height:1.8}
+.sl-open-play-filters{display:grid;grid-template-columns:repeat(3,minmax(130px,1fr)) auto auto;align-items:end;gap:12px;margin:22px 0 28px;padding:20px;background:#fff;border:1px solid var(--line);border-radius:18px}
+.sl-open-play-filters label,.sl-open-play-register label{font-size:13px;font-weight:750;color:#334761}.sl-open-play-filters input,.sl-open-play-filters select,.sl-open-play-register input,.sl-open-play-register select,.sl-open-play-register textarea{width:100%;margin-top:7px;padding:12px 13px;border:1px solid #dce4ef;border-radius:11px;background:#fff;color:#20344d}
+.sl-open-play-list{display:grid;gap:18px}.sl-open-play-card{padding:25px}.sl-open-play-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.sl-open-play-card-head h2{margin:12px 0 0;font-size:22px;color:var(--navy)}.sl-open-play-availability{flex-shrink:0;padding:8px 12px;border-radius:30px;background:#edf0f3;color:#616b74;font-size:13px;font-weight:750}.sl-open-play-availability.is-open{background:#e8f4ec;color:#286746}
+.sl-open-play-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin:22px 0;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.sl-open-play-details div{min-width:0}.sl-open-play-details dt{font-size:12px;color:var(--muted);margin-bottom:5px}.sl-open-play-details dd{margin:0;color:#25364a;font-weight:650;line-height:1.6;overflow-wrap:anywhere}.sl-open-play-description{white-space:pre-wrap;color:#5d6b7a;line-height:1.8}
+.sl-open-play-register{max-width:650px;margin-top:22px;padding:20px;background:#f8f9fb;border:1px solid var(--line);border-radius:15px}.sl-open-play-register h3{margin:0;color:var(--navy)}.sl-open-play-register textarea{min-height:75px;resize:vertical}.sl-open-play-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.sl-open-play-register .small{line-height:1.7}.sl-open-play-message{margin:0;color:#276446;font-weight:700}.sl-open-play-login{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.sl-open-play-login p{margin:0;color:var(--muted)}
+.sl-open-play-mode{display:flex;gap:9px;flex-wrap:wrap;margin-top:20px}.sl-open-play-mode button{padding:10px 16px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#35465a;font-weight:750}.sl-open-play-mode button.is-active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.sl-open-play-create{margin:12px 0 30px;padding:24px;background:#fff;border:1px solid var(--line);border-radius:18px}.sl-open-play-create-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.sl-open-play-create label{font-size:13px;font-weight:750;color:#334761}.sl-open-play-create input,.sl-open-play-create select,.sl-open-play-create textarea{width:100%;margin-top:7px;padding:12px 13px;border:1px solid #dce4ef;border-radius:11px;background:#fff;color:#20344d}.sl-open-play-create textarea{min-height:100px;resize:vertical}.sl-open-play-address,.sl-open-play-description-field{grid-column:1/-1}
+@media(max-width:850px){.sl-open-play-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.sl-open-play-filters button{width:100%}}
+@media(max-width:600px){.sl-open-play-hero{padding-top:18px}.sl-open-play-filters{grid-template-columns:1fr;padding:16px}.sl-open-play-card{padding:18px}.sl-open-play-card-head{flex-direction:column}.sl-open-play-card-head h2{font-size:20px}.sl-open-play-availability{align-self:flex-start}.sl-open-play-details{grid-template-columns:1fr 1fr;gap:12px}.sl-open-play-form-grid,.sl-open-play-create-grid{grid-template-columns:1fr}.sl-open-play-register,.sl-open-play-create{padding:16px}.sl-open-play-register .btn{width:100%}.sl-open-play-address,.sl-open-play-description-field{grid-column:auto}.sl-open-play-create .row{align-items:stretch}.sl-open-play-create .row .btn{width:100%}}
 
 
 /* SportLink Warm Edition · Step 1 · visual-only overrides (2026-10-30)
@@ -460,6 +467,50 @@ body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),rad
 .site-header{background:#fffdf9f2;border-bottom-color:#eee5dd}
 .brand,.foot strong{color:#243037}.brand span,.foot strong span{color:#c65a32}.brand i,.foot strong i{color:#c65a32}
 .nav button{color:#59616a}.nav button.active,.nav-links button:hover,.nav-links button.active{background:#fae8dc;color:#a74320}
+.sl-open-play-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:14px}
+.sl-open-play-card{display:flex;flex-direction:column;gap:0;overflow:hidden;padding:0;border-radius:16px;transition:transform .18s ease,box-shadow .18s ease}
+.sl-open-play-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px #40281914}
+.sl-open-play-card-cover{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;background:#f2e3d6}
+.sl-open-play-card-cover-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:radial-gradient(ellipse at 82% 18%,#f2c7a6 0%,transparent 42%),linear-gradient(125deg,#f9e9dc,#f4d8c6);color:#9e4b2b}
+.sl-open-play-card-cover-empty span{font-size:10px;font-weight:800;letter-spacing:.13em}
+.sl-open-play-card-cover-empty strong{font-size:45px;line-height:1.2}
+.sl-open-play-card-content{display:flex;flex:1;flex-direction:column;justify-content:space-between;gap:14px;padding:17px}
+.sl-open-play-card h2{margin:10px 0 8px;font-size:18px;line-height:1.4}
+.sl-open-play-card-meta{display:grid;gap:5px;margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.sl-open-play-card-side{display:grid;align-content:start;justify-items:start;gap:9px}
+.sl-open-play-card-side .btn{width:100%}
+.sl-open-play-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:#1a222bb8}
+.sl-open-play-dialog{position:relative;width:min(100%,700px);max-height:min(90vh,850px);overflow:auto;padding:26px;background:#fffdf9;border:1px solid var(--line);border-radius:20px;box-shadow:0 25px 80px #1117}
+.sl-open-play-dialog-close{position:sticky;top:0;float:right;z-index:1;width:40px;height:40px;margin:-8px -8px 0 12px;border:1px solid var(--line);border-radius:50%;background:#fff;font-size:23px;line-height:1;cursor:pointer}
+.sl-open-play-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-right:42px}
+.sl-open-play-dialog-head h2{margin:0;color:var(--navy);font-size:24px}
+.sl-open-play-my-list{display:grid;gap:14px}
+.sl-open-play-my-card{padding:18px;background:#fff;border:1px solid var(--line);border-radius:16px}
+.sl-open-play-my-card h2{margin:0 0 8px;color:var(--navy);font-size:19px}
+.sl-open-play-my-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sl-open-play-status{display:inline-flex;padding:5px 10px;border-radius:99px;background:#fae8dc;color:#a74320;font-size:12px;font-weight:750}
+.sl-open-play-host-list{display:grid;gap:16px}
+.sl-open-play-host-game{padding:20px}
+.sl-open-play-host-game>header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.sl-open-play-host-game>header h2{margin:9px 0 5px;color:var(--navy);font-size:20px}
+.sl-open-play-host-game>header p{margin:0;color:var(--muted)}
+.sl-open-play-host-photo{display:block;width:min(100%,520px);max-height:300px;object-fit:cover;margin:18px 0 12px;border-radius:14px}
+.sl-open-play-host-photo-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;margin:14px 0 18px;padding:14px;background:#fff8f1;border:1px solid var(--line);border-radius:13px}
+.sl-open-play-host-photo-form label{display:grid;gap:7px;color:#334761;font-size:13px;font-weight:750}
+.sl-open-play-host-photo-form input{width:100%;min-width:0;padding:10px;border:1px solid #dce4ef;border-radius:10px;background:#fff}
+.sl-open-play-host-photo-form .muted{font-weight:400}
+.sl-open-play-host-photo-form .sl-open-play-message{grid-column:1/-1}
+.sl-open-play-host-summary{margin:16px 0 10px;color:#625b56;font-weight:700}
+.sl-open-play-host-game>h3{margin:12px 0;color:var(--navy);font-size:16px}
+.sl-open-play-attendees{display:grid;gap:10px}
+.sl-open-play-attendee{padding:15px;border:1px solid var(--line);border-radius:13px;background:#fffdfa}
+.sl-open-play-attendee-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sl-open-play-attendee-head h3{margin:0 0 5px;color:#3f3934;font-size:16px}
+.sl-open-play-attendee-note{margin:11px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.sl-open-play-attendee-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.sl-open-play-attendee-actions .btn{min-width:76px}
+@media(max-width:600px){.sl-open-play-modal{padding:10px;align-items:end}.sl-open-play-dialog{max-height:92vh;padding:18px;border-radius:18px 18px 0 0}.sl-open-play-dialog-head h2{font-size:20px}.sl-open-play-card-content{padding:15px}}
+@media(max-width:600px){.sl-open-play-host-game{padding:16px}.sl-open-play-host-game>header{flex-direction:column}.sl-open-play-host-game>header .btn{width:100%}.sl-open-play-attendee-head{flex-direction:column;align-items:flex-start}.sl-open-play-host-photo-form{grid-template-columns:1fr}.sl-open-play-host-photo-form .btn{width:100%}}
 .nav .login{background:#c65a32;color:#fff}.nav .login:hover{background:#a94323;color:#fff}
 .sl-member-trigger{background:#fae8dc;color:#963c20;border:1px solid #f1d5c4;box-shadow:0 7px 22px #b96b4120}
 .sl-member-trigger:hover{background:#f8dac7}.sl-member-initial{background:#f6c8ae;color:#9d3f1f}
@@ -480,7 +531,6 @@ body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),rad
 .sl-home-search{background:linear-gradient(120deg,#fffaf5,#faeee5);border-color:#efdfd1;box-shadow:0 10px 30px #8c553512}
 .sl-home-search h2,.sl-home-search-form label{color:#543b31}
 .sl-home-search-form select{border-color:#ead8c9;background:#fffdfa;color:#443a36}
-.sl-home-steps .sl-how-step{background:#fffdfa;border-color:#eee0d6}
 .sl-home-join{background:linear-gradient(110deg,#fff0e2,#f8dfcf);border-color:#ebd2c1}
 /* Member center: warm greeting banner in place of forest green */
 .sl-welcome-card{background:radial-gradient(circle at 90% 22%,#f4c5a8 0%,transparent 35%),linear-gradient(120deg,#fffdf9 0%,#fff3e8 55%,#f6d9c4 100%);border:1px solid #ecd8c8;color:#243037;box-shadow:0 18px 42px #966b4c1c}
@@ -502,6 +552,8 @@ body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),rad
 .sl-calendar-day.selected{background:#c65a32;color:#fff}
 .sl-calendar-nav button{background:#fff0e5;border-color:#eed9c8;color:#9c4b2b}
 .sl-fav-info{color:#4a3e38}.sl-widget-title h3{color:#423b36}
+.sl-demo-details{color:#5b463a;border-color:#efddcf;background:#fffaf5}
+.sl-demo-details p{color:#7d6d63}
 :focus-visible{outline-color:#c65a32}
 @media(max-width:700px){
   .hero.sl-home-hero{padding:36px 24px}
@@ -509,4 +561,91 @@ body{background:radial-gradient(ellipse at 3% 29%,#f7dfcb55,transparent 35%),rad
   .nav .sl-mobile-menu-toggle{background:#fff0e6;color:#9c4a2b;border-color:#ecd2bf}
   .nav-links{border-top-color:#eee1d7}
   .sl-welcome-card{padding:22px 19px 18px}
+}
+
+.sl-coach-calendar-card{margin:0 0 26px;padding:24px;border:1px solid #e7deef;border-radius:23px;background:radial-gradient(ellipse at 100% 0%,#f2eaff80,transparent 36%),linear-gradient(145deg,#fffefa,#fffaf5);box-shadow:0 12px 32px #56377910}
+.sl-coach-calendar-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.sl-coach-calendar-heading h2{margin:5px 0;color:#352a48;font-size:21px}
+.sl-coach-calendar-heading p{margin:0;line-height:1.6}
+.sl-coach-calendar-card .sl-calendar-nav{color:#514363}
+.sl-coach-calendar-card .sl-calendar-nav button{background:#f5effb;border-color:#e3d8ee;color:#67478a}
+.sl-coach-calendar-card .sl-calendar-nav button:hover{background:#ede3f7}
+.sl-coach-calendar-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.sl-coach-calendar-grid .sl-calendar-day{transition:transform .18s,background .18s,border-color .18s,box-shadow .18s}
+.sl-coach-calendar-grid .sl-calendar-day.has-lesson{background:#f1e9fb;border-color:#e0d1f2;color:#583b77}
+.sl-coach-calendar-grid .sl-calendar-day.has-lesson:hover{transform:translateY(-2px);box-shadow:0 6px 14px #74529a20}
+.sl-coach-calendar-grid .sl-calendar-day.has-lesson i{background:#c66c49}
+.sl-coach-calendar-grid .sl-calendar-day.selected{background:linear-gradient(135deg,#7650a5,#5b3e87);border-color:#7650a5;color:#fff;box-shadow:0 6px 16px #67458c35}
+.sl-coach-calendar-lesson{margin:0}
+.sl-coach-calendar-lesson .item{position:relative;overflow:hidden;margin:0;padding:18px 20px 18px 23px;background:linear-gradient(115deg,#fff 0%,#fff 72%,#fcf8ff 100%);border-color:#e8dfef;border-radius:16px;box-shadow:0 5px 15px #52376b08;transition:transform .18s,box-shadow .18s}
+.sl-coach-calendar-lesson .item:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,#9b72c7,#d78b6b)}
+.sl-coach-calendar-lesson .item:hover{transform:translateY(-2px);box-shadow:0 10px 24px #52376b12}
+.sl-coach-calendar-lesson .item .row{align-items:flex-start}
+.sl-coach-calendar-lesson .item .row>b{color:#352a48;font-size:16px}
+.sl-coach-calendar-lesson .item .pill{background:#f0e8fb;color:#694691;border:1px solid #e4d7f3}
+.sl-coach-calendar-lesson .item p.muted{color:#746b7d}
+.sl-coach-calendar-lesson .item .btn{border-radius:999px}
+.sl-coach-calendar-lesson p{margin:8px 0 0;overflow-wrap:anywhere}
+.sl-coach-calendar-detail{border:1px solid #eee6f2;background:#faf7fc;color:#6b5b79}
+.sl-coach-calendar-detail .notice{margin:0}
+.sl-coach-calendar-modal{position:fixed;inset:0;z-index:1001;display:grid;place-items:center;padding:20px;background:#221a2eb8;backdrop-filter:blur(7px);animation:slCalendarFade .18s ease-out}
+.sl-coach-calendar-dialog{position:relative;width:min(100%,760px);max-height:min(90vh,850px);overflow:auto;padding:28px;background:radial-gradient(ellipse at 100% 0%,#f2eaff80,transparent 34%),#fffdf9;border:1px solid #e4d8ee;border-radius:23px;box-shadow:0 30px 90px #130a1f50,0 0 0 4px #ffffff30;animation:slCalendarRise .24s ease-out}
+.sl-coach-calendar-dialog-head{display:flex;align-items:center;gap:17px;margin-bottom:20px;padding:2px 2px 18px;border-bottom:1px solid #eee6f2}
+.sl-coach-calendar-date-mark{flex:none;width:68px;height:76px;display:grid;align-content:center;justify-items:center;gap:1px;border:1px solid #e3d6f1;border-radius:17px;background:linear-gradient(155deg,#f7f0ff,#eee4fa);color:#67478a;box-shadow:inset 0 1px #fff}
+.sl-coach-calendar-date-mark span,.sl-coach-calendar-date-mark small{font-size:10px;font-weight:750;letter-spacing:.04em}
+.sl-coach-calendar-date-mark strong{font-size:28px;line-height:1;font-weight:850}
+.sl-coach-calendar-dialog-title{min-width:0;flex:1}
+.sl-coach-calendar-dialog-title .eyebrow{color:#835da7;font-size:10px;letter-spacing:2px}
+.sl-coach-calendar-dialog-head h2{margin:5px 0 9px;color:#33283f;font-size:23px;letter-spacing:.01em}
+.sl-coach-calendar-count{display:inline-flex;align-items:center;padding:5px 11px;border:1px solid #eee0d5;border-radius:999px;background:#fff4ec;color:#a55334;font-size:12px;font-weight:800}
+.sl-coach-calendar-dialog-close{flex:none;width:40px;height:40px;border:1px solid #e8deee;border-radius:50%;background:#fff;color:#5d4a6b;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 3px 9px #39214d0b}
+.sl-coach-calendar-dialog-close:hover{background:#f5eefb;border-color:#d6c3e8}
+.sl-coach-calendar-lesson-list{display:grid;gap:12px}
+.sl-coach-calendar-empty{padding:24px;border:1px dashed #d9c9e8;border-radius:16px;background:#faf6ff;color:#6b577f;text-align:center}
+@keyframes slCalendarFade{from{opacity:0}to{opacity:1}}
+@keyframes slCalendarRise{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){
+  .sl-coach-calendar-card{margin-bottom:20px;padding:17px;border-radius:18px}
+  .sl-coach-calendar-heading{align-items:flex-start}
+  .sl-coach-calendar-heading h2{font-size:19px}
+  .sl-coach-calendar-grid{gap:3px}
+  .sl-coach-calendar-grid .sl-calendar-day{min-height:36px}
+}
+@media(max-width:600px){
+  .sl-coach-calendar-modal{align-items:end;padding:10px}
+  .sl-coach-calendar-dialog{max-height:92vh;padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-radius:21px 21px 0 0}
+  .sl-coach-calendar-dialog-head{gap:12px;margin-bottom:15px;padding-bottom:15px}
+  .sl-coach-calendar-date-mark{width:57px;height:66px;border-radius:14px}
+  .sl-coach-calendar-date-mark strong{font-size:24px}
+  .sl-coach-calendar-dialog-title .eyebrow{font-size:8px;letter-spacing:1.4px}
+  .sl-coach-calendar-dialog-head h2{font-size:18px}
+  .sl-coach-calendar-dialog-close{width:36px;height:36px}
+  .sl-coach-calendar-lesson .item{padding:15px 14px 15px 18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .sl-coach-calendar-modal,.sl-coach-calendar-dialog{animation:none}
+}
+.sl-dashboard-tools+.sl-push-settings{margin:-8px 0 24px;padding:17px 19px;border-color:#e8dfef;border-radius:16px;background:linear-gradient(110deg,#faf6ff,#fffaf5)}
+.sl-push-settings strong{color:#49345e}
+.sl-push-settings button{border-radius:999px}
+.sl-report-form-card{max-width:760px;padding:clamp(22px,4vw,36px);border:1px solid #e8dfef;border-radius:22px;background:linear-gradient(145deg,#fffefa,#faf6ff);box-shadow:0 16px 42px #43305b12}
+.sl-report-form-card h1{margin:8px 0 10px;color:#33283f}
+.sl-report-form-card>p{line-height:1.75}
+.sl-report-form-card input[type=file]{padding:12px;background:#fff}
+.sl-report-message{min-height:1.5em;margin:0;color:#67478a;font-size:14px}
+.sl-admin-reports{display:grid;gap:14px;margin-top:16px}
+.sl-admin-report{padding:18px;border:1px solid #e8dfef;border-radius:16px;background:#fff;box-shadow:0 5px 16px #39214d08}
+.sl-admin-report>header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sl-admin-report>header>strong{color:#49345e}
+.sl-admin-report>p{line-height:1.7;overflow-wrap:anywhere}
+.sl-report-image-link{display:inline-flex;margin:5px 0 12px;color:#67478a;font-weight:750}
+.sl-admin-report-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) auto;align-items:end;gap:10px;padding-top:14px;border-top:1px solid #eee8f2}
+.sl-admin-report-controls label{display:grid;gap:6px;color:#514363;font-size:12px;font-weight:750}
+.sl-admin-report-controls select,.sl-admin-report-controls textarea{width:100%;padding:10px;border:1px solid #e3d8ee;border-radius:10px;background:#fff;font:inherit}
+.sl-admin-report-controls textarea{min-height:42px;resize:vertical}
+.sl-admin-report-controls .btn{padding:10px 13px;font-size:12px}
+@media(max-width:700px){
+  .sl-admin-report{padding:15px}
+  .sl-admin-report-controls{grid-template-columns:1fr}
+  .sl-admin-report-controls .btn{width:100%;min-height:44px}
 }

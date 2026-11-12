@@ -1,6 +1,6 @@
 /* SportLink PWA V1: offline shell only; never cache Supabase or authenticated API data. */
-const CACHE = 'sportlink-shell-v6';
-const SHELL = ['/', '/index.html', '/style.css', '/design-slate-orange.css', '/athlete.svg', '/icon-192.png', '/icon-512.png'];
+const CACHE = 'sportlink-shell-v9';
+const SHELL = ['/', '/index.html', '/style.css', '/design-slate-orange.css', '/design-lavender.css', '/design-action-home.css', '/athlete.svg', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
@@ -19,7 +19,7 @@ self.addEventListener('fetch', event => {
     return;
   }
   // Static assets only. Application JS is network-first to avoid stale logic.
-  if (['/style.css', '/design-slate-orange.css', '/app.js', '/athlete.svg', '/pwa-register.js'].includes(url.pathname) || ['/icon-192.png','/icon-512.png'].includes(url.pathname)) {
+  if (['/style.css', '/design-slate-orange.css', '/design-lavender.css', '/design-action-home.css', '/app.js', '/athlete.svg', '/pwa-register.js'].includes(url.pathname) || ['/icon-192.png','/icon-512.png'].includes(url.pathname)) {
     event.respondWith(fetch(req).then(response => {
       if (response.ok) { const copy = response.clone(); caches.open(CACHE).then(cache => cache.put(req, copy)); }
       return response;
@@ -27,5 +27,5 @@ self.addEventListener('fetch', event => {
   }
 });
 
-self.addEventListener('push',event=>{event.waitUntil((async()=>{let data={};try{data=event.data?.json()||{}}catch{}const url=new URL(String(data.url||'/?sl_tab=messages'),self.location.origin);await self.registration.showNotification(String(data.title||'SportLink 新訊息').slice(0,100),{body:String(data.body||'你收到好友訊息').slice(0,200),icon:'/icon-192.png',tag:String(data.tag||'sportlink-message').slice(0,100),data:{url:url.origin===self.location.origin?url.href:self.location.origin+'/?sl_tab=messages'}})})())});
+self.addEventListener('push',event=>{event.waitUntil((async()=>{let data={};try{data=event.data?.json()||{}}catch{}const fallback=self.location.origin+'/?sl_tab=bookings';const url=new URL(String(data.url||fallback),self.location.origin);await self.registration.showNotification(String(data.title||'SportLink 通知').slice(0,100),{body:String(data.body||'你有新的 SportLink 通知').slice(0,200),icon:'/icon-192.png',tag:String(data.tag||'sportlink-notification').slice(0,100),data:{url:url.origin===self.location.origin?url.href:fallback}})})())});
 self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const url=event.notification.data?.url||self.location.origin+'/?sl_tab=messages';const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});const existing=clients.find(c=>new URL(c.url).origin===self.location.origin);if(existing){await existing.focus();if('navigate' in existing)await existing.navigate(url)}else await self.clients.openWindow(url)})())});
