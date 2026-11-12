@@ -731,19 +731,40 @@ function slPushPanel(){
 }
 async function slPushEnable(){
  if(!user||!slPushSupported())throw Error('請先登入並確認裝置支援推播');
+ const userId=user.id;
  if(await Notification.requestPermission()!=='granted')throw Error('通知權限未允許');
  const reg=await slPushWithTimeout(slPushRegistration(true),'Service Worker 啟動逾時，請重新整理頁面後再試。');
  if(!reg)throw Error('無法註冊 Service Worker，請確認網站使用 HTTPS 或 localhost。');
  let sub=await reg.pushManager.getSubscription();
  if(sub){const k=sub.options?.applicationServerKey;if(k){const a=new Uint8Array(k),b=slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY);if(a.length!==b.length||a.some((v,i)=>v!==b[i])){await sub.unsubscribe();sub=null}}}
  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY)});
- const data=sub.toJSON();if(!data.keys?.p256dh||!data.keys?.auth)throw Error('推播訂閱資料不完整');
- const row={user_id:user.id,endpoint:data.endpoint,p256dh:data.keys.p256dh,auth:data.keys.auth,enabled:true};
- const found=await supabaseClient.from('sportlink_push_subscriptions').select('id').eq('user_id',user.id).eq('endpoint',data.endpoint).maybeSingle();
- if(found.error)throw found.error;
- const result=found.data?await supabaseClient.from('sportlink_push_subscriptions').update(row).eq('id',found.data.id):await supabaseClient.from('sportlink_push_subscriptions').insert(row);
- if(result.error)throw result.error;
- slPushStateUserId=user.id;slPushEnabled=true;slPushChecking=false;slPushStateReady=true;slPushStateError='';
+ for(let attempt=0;attempt<2;attempt++){
+   if(user?.id!==userId)throw Error('登入帳號已變更，請重新啟用推播');
+   const data=sub.toJSON();if(!data.endpoint||!data.keys?.p256dh||!data.keys?.auth)throw Error('推播訂閱資料不完整');
+   const row={user_id:userId,endpoint:data.endpoint,p256dh:data.keys.p256dh,auth:data.keys.auth,enabled:true};
+   const findOwn=()=>supabaseClient.from('sportlink_push_subscriptions').select('id').eq('user_id',userId).eq('endpoint',data.endpoint).maybeSingle();
+   const updateOwn=id=>supabaseClient.from('sportlink_push_subscriptions').update(row).eq('id',id).eq('user_id',userId);
+   const found=await findOwn();if(found.error)throw found.error;
+   let result=found.data?await updateOwn(found.data.id):await supabaseClient.from('sportlink_push_subscriptions').insert(row);
+   if(result.error?.code==='23505'&&String(result.error.message).includes('sportlink_push_subscriptions_endpoint_key')){
+     // Another tab may have saved this account's subscription after our lookup.
+     const existing=await findOwn();if(existing.error)throw existing.error;
+     if(existing.data)result=await updateOwn(existing.data.id);
+     else if(attempt===0){
+       // RLS hides other accounts' subscriptions. Rotate this browser's subscription
+       // instead of updating or taking ownership of another account's database row.
+       if(user?.id!==userId)throw Error('登入帳號已變更，請重新啟用推播');
+       if(!await sub.unsubscribe())throw Error('無法重設此裝置的舊訂閱，請重新整理後再試');
+       sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:slPushKeyBytes(SPORTLINK_VAPID_PUBLIC_KEY)});
+       continue;
+     }else throw Error('此裝置的舊推播訂閱仍有衝突，請重新整理後再啟用');
+   }
+   if(result.error)throw result.error;
+   break;
+ }
+ if(user?.id!==userId)throw Error('登入帳號已變更，請重新啟用推播');
+ slPushStateRequest++;
+ slPushStateUserId=userId;slPushEnabled=true;slPushChecking=false;slPushStateReady=true;slPushStateError='';
  slPushStatus='已啟用推播，可接收訊息與課程提醒。';
 }
 async function slPushDisable(){
